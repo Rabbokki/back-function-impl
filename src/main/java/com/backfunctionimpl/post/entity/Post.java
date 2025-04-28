@@ -2,10 +2,12 @@ package com.backfunctionimpl.post.entity;
 
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.BaseEntity;
+import com.backfunctionimpl.comment.entity.Comment;
 import com.backfunctionimpl.post.enums.Category;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -27,7 +29,7 @@ public class Post extends BaseEntity {
 
     // 게시글에 연결된 이미지들
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PostImage> imgUrl;
+    private List<Comment> commentList = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     private Category category;
@@ -39,7 +41,7 @@ public class Post extends BaseEntity {
     // 게시글에 연결된 태그들
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostTag> tags;
-    
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
