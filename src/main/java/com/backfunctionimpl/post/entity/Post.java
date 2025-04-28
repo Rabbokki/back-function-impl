@@ -17,16 +17,17 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String board;
-    private String title;
+    private String board;    // 게시판 종류 (예: 자유게시판, 팁게시판 등)
+    private String title;    // 제목
 
     @Column(columnDefinition = "TEXT")
-    private String content;
+    private String content;  // 본문 내용
 
-    @ElementCollection
-    private List<String> images;
+    // 게시글에 연결된 이미지들
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostImage> images;
 
-    @ElementCollection
-    private List<String> tag;
-
+    // 게시글에 연결된 태그들
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostTag> tags;
 }

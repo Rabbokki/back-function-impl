@@ -29,6 +29,7 @@ public class Account extends BaseEntity{
     @Column(nullable = false)
     private String nickname;
 
+    @Column(nullable = false)
     private LocalDate birthday;
 
     private String imgUrl;
@@ -41,6 +42,12 @@ public class Account extends BaseEntity{
 
     @Column(nullable = true)
     private String providerId;
+
+
+    @Enumerated(EnumType.STRING)
+    private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
+
+    private Integer levelExp;   // 경험치 퍼센트
 
 
     //일반 회원
