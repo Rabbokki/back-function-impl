@@ -1,5 +1,8 @@
 package com.backfunctionimpl.post.entity;
 
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.entity.BaseEntity;
+import com.backfunctionimpl.post.enums.Category;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,23 +14,34 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Post {
+@Table(name = "post")
+public class Post extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String board;    // 게시판 종류 (예: 자유게시판, 팁게시판 등)
     private String title;    // 제목
-
     @Column(columnDefinition = "TEXT")
     private String content;  // 본문 내용
 
     // 게시글에 연결된 이미지들
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PostImage> images;
+    private List<PostImage> imgUrl;
+
+    @Enumerated(EnumType.STRING)
+    private Category category;
+
+    private int views;
+    private int commentsCount;
+    private int likeCount;
 
     // 게시글에 연결된 태그들
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostTag> tags;
+    
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Account account;
 }
