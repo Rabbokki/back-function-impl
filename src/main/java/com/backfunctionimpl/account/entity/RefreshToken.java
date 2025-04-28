@@ -2,6 +2,7 @@ package com.backfunctionimpl.account.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,10 +19,12 @@ public class RefreshToken {
     @NotBlank
     private String accountEmail;
 
-    public RefreshToken(String token, String email){
-        this.refreshToken = token;
-        this.accountEmail = email;
+    @Builder
+    public RefreshToken(String refreshToken, String accountEmail) {
+        this.refreshToken = refreshToken;
+        this.accountEmail = accountEmail;
     }
+
 
     public RefreshToken updateToken(String token){
         this.refreshToken = token;
