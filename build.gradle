@@ -21,6 +21,9 @@ configurations {
 
 repositories {
     mavenCentral()
+    google()
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://maven.google.com" }  // <- 이거 추가!!
 }
 
 dependencies {
@@ -49,7 +52,8 @@ dependencies {
     //googlemap
     implementation 'com.google.api-client:google-api-client:1.33.2'
     implementation 'com.google.maps:google-maps-services:0.18.1'
-    implementation 'com.google.apis:google-api-services-places:v1-rev205-1.25.0'
+    implementation 'com.google.apis:google-api-services-places:v1-rev305-1.25.0'
+
 }
 
 tasks.named('test') {
