@@ -23,25 +23,24 @@ repositories {
     mavenCentral()
     google()
     maven { url "https://repo.spring.io/release" }
-    maven { url "https://maven.google.com" }  // <- 이거 추가!!
 }
 
 dependencies {
-    //jpa
+    // JPA
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    //security
+    // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    //lombok
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
-    //mysql
+    // MySQL
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    //oauth2
+    // OAuth2
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -49,11 +48,9 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     // Jasypt
     implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
-    //googlemap
+    // Google Maps
     implementation 'com.google.api-client:google-api-client:1.33.2'
-    implementation 'com.google.maps:google-maps-services:0.18.1'
-    implementation 'com.google.apis:google-api-services-places:v1-rev305-1.25.0'
-
+    implementation 'com.google.maps:google-maps-services:2.2.0' // 최신 버전으로 업데이트
 }
 
 tasks.named('test') {
