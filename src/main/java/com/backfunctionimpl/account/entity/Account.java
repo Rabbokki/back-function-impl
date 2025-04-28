@@ -38,6 +38,7 @@ public class Account extends BaseEntity{
 
     @Column(nullable = false)
     private LocalDate birthday;
+
     private String imgUrl;
 
     @Column(nullable = true)

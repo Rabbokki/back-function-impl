@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class AccountRegisterRequest {
+public class AccountRegisterRequestDto {
     private String email;
     private String password;
     private String nickname;
