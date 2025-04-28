@@ -9,7 +9,6 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 
 @Entity
 @Table(name = "account")
@@ -22,8 +21,14 @@ public class Account extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "account_id")
     private Long id;
+
+    @Column(nullable = false)
     private String email;
+
+    @Column(nullable = false)
     private String password;
+
+    @Column(nullable = false)
     private String nickname;
 
     private LocalDate birthday;
@@ -35,6 +40,7 @@ public class Account extends BaseEntity{
 
     @Column(nullable = true)
     private String provider;
+
     @Column(nullable = true)
     private String providerId;
 
@@ -54,5 +60,6 @@ public class Account extends BaseEntity{
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
+        this.password = "SOCIAL_LOGIN"; //소셜 로그인용 기본값
     }
 }
