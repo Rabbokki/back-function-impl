@@ -17,7 +17,6 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String board;    // 게시판 종류 (예: 자유게시판, 팁게시판 등)
     private String title;    // 제목
 
     @Column(columnDefinition = "TEXT")

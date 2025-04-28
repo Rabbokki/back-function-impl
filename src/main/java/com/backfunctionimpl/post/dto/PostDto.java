@@ -12,7 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 public class PostDto {
     private Long id;
-    private String board;
     private String title;
     private String content;
     private List<String> images;

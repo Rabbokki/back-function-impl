@@ -18,7 +18,6 @@ public class PostService {
 
     public PostDto createPost(PostDto dto) {
         Post post = Post.builder()
-                .board(dto.getBoard())
                 .title(dto.getTitle())
                 .content(dto.getContent())
                 .build();
@@ -47,7 +46,6 @@ public class PostService {
         // Post -> PostDto로 변환
         return new PostDto(
                 saved.getId(),
-                saved.getBoard(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(PostImage::getImageUrl).toList(),
@@ -60,7 +58,6 @@ public class PostService {
         return postRepository.findAll().stream()
                 .map(post -> new PostDto(
                         post.getId(),
-                        post.getBoard(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(PostImage::getImageUrl).toList(),
