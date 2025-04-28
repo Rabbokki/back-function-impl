@@ -1,5 +1,8 @@
 package com.backfunctionimpl.account.entity;
 
+
+import com.backfunctionimpl.post.entity.Post;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,33 +11,37 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "account")
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "posts")
 @NoArgsConstructor
 public class Account extends BaseEntity{
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "account_id")
     private Long id;
+
     private String email;
     private String password;
     private String nickname;
-
     private LocalDate birthday;
-
     private String imgUrl;
 
     @Column(nullable = true)
-    private Long kakaoId;
+    private String provider;
 
     @Column(nullable = true)
-    private String provider;
-    @Column(nullable = true)
     private String providerId;
+
+    @OneToMany(mappedBy = "account",
+            cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Post> posts = new ArrayList<>();
+
 
 
     //일반 회원

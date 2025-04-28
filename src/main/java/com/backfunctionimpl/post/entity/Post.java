@@ -1,9 +1,10 @@
 package com.backfunctionimpl.post.entity;
 
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.entity.BaseEntity;
+import com.backfunctionimpl.post.enums.Category;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.List;
 
 @Entity
 @Getter
@@ -11,22 +12,31 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Post {
+@Table(name = "post")
+public class Post extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String board;
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @ElementCollection
-    private List<String> images;
+    private String imgUrl; // 리스트 → 단일 문자열
 
-    @ElementCollection
-    private List<String> tag;
 
+    @Enumerated(EnumType.STRING)
+    private Category category;
+
+    private int views;
+
+    private int commentsCount;
+
+    private int likeCount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Account account;
 }
