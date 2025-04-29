@@ -1,6 +1,8 @@
 package com.backfunctionimpl.account.service;
 
 import com.backfunctionimpl.account.dto.AccountRegisterRequestDto;
+import com.backfunctionimpl.account.dto.AccountResponseDto;
+import com.backfunctionimpl.account.dto.AccountUpdateRequestDto;
 import com.backfunctionimpl.account.dto.LoginRequestDto;
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.RefreshToken;
@@ -9,7 +11,11 @@ import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.account.repository.RefreshTokenRepository;
 import com.backfunctionimpl.global.security.jwt.dto.TokenDto;
 import com.backfunctionimpl.global.security.jwt.util.JwtUtil;
+import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,9 +39,10 @@ public class AccountService {
         // Account 객체 생성
         Account account = new Account();
         account.setEmail(request.getEmail());
-        account.setPassword(request.getPassword());
+        account.setName(request.getName());
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
+        account.setPassword(passwordEncoder.encode(request.getPassword()));
 
         // TravelLevel 기본값 세팅
         account.setLevel(TravelLevel.BEGINNER);
@@ -59,7 +66,7 @@ public class AccountService {
         // 3. JWT 토큰 생성
         TokenDto tokenDto = jwtUtil.createAllToken(account.getEmail());
 
-        // 4. (선택) RefreshToken DB 저장
+        // 4. RefreshToken DB 저장
         RefreshToken refreshToken = RefreshToken.builder()
                 .accountEmail(account.getEmail())
                 .refreshToken(tokenDto.getRefreshToken())
@@ -69,5 +76,44 @@ public class AccountService {
         // 5. 발급된 토큰 반환
         return tokenDto;
     }
+
+    //로그아웃
+    public void logout(String email) {
+        refreshTokenRepository.deleteByAccountEmail(email);
+    }
+
+
+    //회원정보 조회
+    public AccountResponseDto getMyInfo(@AuthenticationPrincipal UserDetailsImpl userDetails
+                                        ) {
+        String email = userDetails.getAccount().getEmail();
+        Account account = accountRepository.findByEmail(email).orElseThrow(()->
+                new RuntimeException("해당 이메일을 찾을 수 없습니다."));
+
+        return new AccountResponseDto(account);
+    }
+
+    //회원정보 수정
+
+    public AccountResponseDto updateMyInfo(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            AccountUpdateRequestDto updateDto) {
+
+        String email = userDetails.getAccount().getEmail();
+
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("해당 이메일을 찾을 수 없습니다."));
+
+        if (updateDto.getNickname() != null) {
+            account.setNickname(updateDto.getNickname());
+        }
+
+        if (updateDto.getPassword() != null) {
+            account.setPassword(passwordEncoder.encode(updateDto.getPassword()));
+        }
+
+        return new AccountResponseDto(account);
+    }
+
 
 }

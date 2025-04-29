@@ -1,16 +1,15 @@
 package com.backfunctionimpl.account.dto;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
 
 @Getter
 @Setter
-public class AccountRegisterRequestDto {
-    private String email;
-    private String name;
+@NoArgsConstructor
+
+//회원정보 수정 요청 dto
+public class AccountUpdateRequestDto {
     private String nickname;
-    private LocalDate birthday;
     private String password;
 }

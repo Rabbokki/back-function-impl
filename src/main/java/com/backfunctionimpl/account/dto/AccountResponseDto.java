@@ -1,0 +1,20 @@
+package com.backfunctionimpl.account.dto;
+
+import com.backfunctionimpl.account.entity.Account;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+
+//회원정보 조회용 dto
+public class AccountResponseDto {
+    private String email;
+    private String nickname;
+
+    // Account 객체로부터 변환
+    public AccountResponseDto(Account account) {
+        this.email = account.getEmail();
+        this.nickname = account.getNickname();
+    }
+}
