@@ -9,25 +9,21 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "image")
 public class Image extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Lob
-    private String image;
+    @Column(nullable = false)
+    private String imageUrl;  // <-- 여기 필드명 수정 (image → imageUrl)
 
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id",nullable = false)
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
-
-
-
-    public Image(String image, Post post) {
-        this.image = image;
-        this.post = post;
-    }
-
-
 }

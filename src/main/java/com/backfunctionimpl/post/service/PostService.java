@@ -2,7 +2,7 @@ package com.backfunctionimpl.post.service;
 
 import com.backfunctionimpl.post.dto.PostDto;
 import com.backfunctionimpl.post.entity.Post;
-import com.backfunctionimpl.post.entity.PostImage;
+import com.backfunctionimpl.post.entity.Image;
 import com.backfunctionimpl.post.entity.PostTag;
 import com.backfunctionimpl.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostService {
 
-    private  final PostRepository postRepository;
+    private final PostRepository postRepository;
 
     public PostDto createPost(PostDto dto) {
         Post post = Post.builder()
@@ -23,13 +23,13 @@ public class PostService {
                 .build();
 
         // 이미지 매핑
-        List<PostImage> images = dto.getImgUrl().stream()
-                .map(url -> PostImage.builder()
-                        .imageUrl(url)
-                        .post(post) // PostImage가 어떤 Post에 연결되는지 지정
+        List<Image> images = dto.getImgUrl().stream()
+                .map(url -> Image.builder()
+                        .imageUrl(url)  // 수정
+                        .post(post)
                         .build())
                 .toList();
-        post.setImgUrl(images);
+        post.setImages(images);  // 수정
 
         // 태그 매핑
         List<PostTag> tags = dto.getTags().stream()
@@ -40,19 +40,20 @@ public class PostService {
                 .toList();
         post.setTags(tags);
 
-        // 저장
         Post saved = postRepository.save(post);
 
-        // Post -> PostDto로 변환
         return new PostDto(
                 saved.getId(),
                 saved.getTitle(),
                 saved.getContent(),
-                saved.getImgUrl().stream().map(PostImage::getImageUrl).toList(),
+                saved.getImages().stream().map(Image::getImageUrl).toList(),  // 수정
+                saved.getCategory(),
+                saved.getViews(),
+                saved.getCommentsCount(),
+                saved.getLikeCount(),
                 saved.getTags().stream().map(PostTag::getTagName).toList()
         );
     }
-
 
     public List<PostDto> getAllPosts() {
         return postRepository.findAll().stream()
@@ -60,7 +61,11 @@ public class PostService {
                         post.getId(),
                         post.getTitle(),
                         post.getContent(),
-                        post.getImgUrl().stream().map(PostImage::getImageUrl).toList(),
+                        post.getImages().stream().map(Image::getImageUrl).toList(), // 수정
+                        post.getCategory(),
+                        post.getViews(),
+                        post.getCommentsCount(),
+                        post.getLikeCount(),
                         post.getTags().stream().map(PostTag::getTagName).toList()
                 ))
                 .toList();

@@ -21,8 +21,8 @@ public class BackFunctionImplApplication {
     public static void main(String[] args) {
         // 명시적으로 .env 파일 로드
         Dotenv dotenv = Dotenv.configure()
-                .directory("C:/Users/80419/Documents/back-function-impl")
                 .filename(".env")
+                .directory("./")
                 .load();
         dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
         SpringApplication.run(BackFunctionImplApplication.class, args);

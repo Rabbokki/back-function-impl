@@ -68,7 +68,7 @@ public class CommentService {
 
         if(comment.getAccount().getId().equals(account.getId())){
             post.getCommentList().remove(comment);
-            post.commentUpdate(post.getCommentSize()-1);
+            post.commentUpdate(-1);
             commentRepository.delete(comment);
         }else {
             throw new RuntimeException("댓글 작성자 아님");

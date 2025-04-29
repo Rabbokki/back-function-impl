@@ -3,6 +3,7 @@ package com.backfunctionimpl.post.entity;
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.BaseEntity;
 import com.backfunctionimpl.comment.entity.Comment;
+import com.backfunctionimpl.post.entity.Image; // ← 이 부분 꼭 확인
 import com.backfunctionimpl.post.enums.Category;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,13 +24,10 @@ public class Post extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;    // 제목
-    @Column(columnDefinition = "TEXT")
-    private String content;  // 본문 내용
+    private String title;
 
-    // 게시글에 연결된 이미지들
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> commentList = new ArrayList<>();
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
     @Enumerated(EnumType.STRING)
     private Category category;
@@ -38,12 +36,24 @@ public class Post extends BaseEntity {
     private int commentsCount;
     private int likeCount;
 
-    // 게시글에 연결된 태그들
+    // 🔹 이미지 필드 추가
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PostTag> tags;
+    private List<Image> images = new ArrayList<>();
 
+    // 🔹 댓글
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> commentList = new ArrayList<>();
 
+    // 🔹 태그
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostTag> tags = new ArrayList<>();
+
+    // 🔹 작성자
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Account account;
+
+    public void commentUpdate(int size) {
+        this.commentsCount=size;
+    }
 }
