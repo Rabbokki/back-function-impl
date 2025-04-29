@@ -33,7 +33,7 @@ public class AccountService {
         // Account 객체 생성
         Account account = new Account();
         account.setEmail(request.getEmail());
-        account.setPassword(request.getPassword());
+        account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
 
