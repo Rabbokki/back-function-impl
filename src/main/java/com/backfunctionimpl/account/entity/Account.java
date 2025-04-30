@@ -32,35 +32,24 @@ public class Account extends BaseEntity{
 
     @Column(nullable = false)
     private String name;
-
     @Column(nullable = false)
     private String nickname;
-
     @Column(nullable = false)
     private LocalDate birthday;
-
     @Column(nullable = false)
     private String password;
-
     private String imgUrl;
-
     @Column(nullable = true)
     private String provider;
-
     @Column(nullable = true)
     private String providerId;
-
     @OneToMany(mappedBy = "account",
             cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
 
-
-
     @Enumerated(EnumType.STRING)
     private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
-
     private Integer levelExp;   // 경험치 퍼센트
-
     @OneToMany(fetch = FetchType.LAZY,mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 
