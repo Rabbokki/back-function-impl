@@ -7,6 +7,11 @@ import java.util.List;
 @Data
 public class FlightSearchResDto {
     private List<FlightInfo> flights;
+
+    public FlightSearchResDto(List<FlightInfo> flights) {
+        this.flights = flights;
+    }
+
     @Getter
     @Setter
     @NoArgsConstructor
