@@ -18,7 +18,7 @@ spring:
     database: mysql
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: create # 'create' 대신 'update'로 변경 권장
+      ddl-auto: update # 'create' 대신 'update'로 변경 권장
     generate-ddl: false
     show-sql: true
     properties:
