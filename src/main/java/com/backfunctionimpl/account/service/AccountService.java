@@ -40,9 +40,9 @@ public class AccountService {
         Account account = new Account();
         account.setEmail(request.getEmail());
         account.setName(request.getName());
+        account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
 
         // TravelLevel 기본값 세팅
         account.setLevel(TravelLevel.BEGINNER);
