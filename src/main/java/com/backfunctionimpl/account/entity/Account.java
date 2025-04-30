@@ -3,6 +3,7 @@ package com.backfunctionimpl.account.entity;
 
 import com.backfunctionimpl.post.entity.Post;
 
+import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -59,6 +60,9 @@ public class Account extends BaseEntity{
     private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
 
     private Integer levelExp;   // 경험치 퍼센트
+
+    @OneToMany(fetch = FetchType.LAZY,mappedBy = "account", cascade = CascadeType.ALL)
+    private List<TravelPlan> travelPlans = new ArrayList<>();
 
 
     //일반 회원
