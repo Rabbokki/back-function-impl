@@ -1,5 +1,6 @@
 package com.backfunctionimpl.post.entity;
 
+import com.backfunctionimpl.tag.entity.Tag;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,4 +21,8 @@ public class PostTag {
     @ManyToOne
     @JoinColumn(name = "post_id")
     private Post post; // 어떤 게시글에 연결된 태그인지
+
+    @ManyToOne
+    @JoinColumn(name = "tag_id")
+    private Tag tag; // 어떤 태그인지
 }
