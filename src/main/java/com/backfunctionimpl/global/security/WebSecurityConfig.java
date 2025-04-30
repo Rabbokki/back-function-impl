@@ -4,6 +4,7 @@ import com.backfunctionimpl.account.oauth2.google.CustomOAuth2UserService;
 import com.backfunctionimpl.account.oauth2.google.OAuth2SuccessHandler;
 import com.backfunctionimpl.global.security.jwt.filter.JwtAuthFilter;
 import com.backfunctionimpl.global.security.jwt.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,12 +71,14 @@ public class WebSecurityConfig {
                         .requestMatchers("/file/**").permitAll()
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-//                        .requestMatchers("/post/create").permitAll()
+//                       .requestMatchers("/post/create").permitAll()
                         .requestMatchers("/post/**").permitAll()
                         .requestMatchers("/cart/**").authenticated()
                         .requestMatchers("/chat").authenticated()
                         .requestMatchers("/api/liquor/**").permitAll()
                         .anyRequest().authenticated())
+
+
                 .oauth2Login(oauth2 -> oauth2.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler()))
                 .securityContext(securityContext -> securityContext.requireExplicitSave(false))

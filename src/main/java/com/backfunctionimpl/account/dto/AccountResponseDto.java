@@ -11,10 +11,14 @@ import lombok.Getter;
 public class AccountResponseDto {
     private String email;
     private String nickname;
+    private String level;
+    private int levelExp;
 
     // Account 객체로부터 변환
     public AccountResponseDto(Account account) {
         this.email = account.getEmail();
         this.nickname = account.getNickname();
+        this.level = account.getLevel().name();
+        this.levelExp = account.getLevelExp();
     }
 }

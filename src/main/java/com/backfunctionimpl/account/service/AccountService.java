@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,11 @@ public class AccountService {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
+        // 필수 약관 동의 확인
+        if (!request.isAgreeTerms()) {
+            throw new IllegalArgumentException("이용약관 및 개인정보 처리방침에 동의해야 가입할 수 있습니다.");
+        }
+
         // Account 객체 생성
         Account account = new Account();
         account.setEmail(request.getEmail());
@@ -43,20 +49,30 @@ public class AccountService {
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
+        account.setImgUrl(null); // 필요 시 프로필 이미지 기본값 지정
+        account.setProvider(null);
+        account.setProviderId(null);
 
         // TravelLevel 기본값 세팅
         account.setLevel(TravelLevel.BEGINNER);
         account.setLevelExp(0);
 
+        // 약관 동의 여부 저장
+        account.setAgreeTerms(request.isAgreeTerms());         // 무조건 true여야 통과
+        account.setAgreeMarketing(request.isAgreeMarketing()); // 선택 사항
+
         // DB에 저장
         accountRepository.save(account);
     }
 
+
     //로그인
+    @Transactional
     public TokenDto login(LoginRequestDto request) {
         // 1. 이메일로 사용자 찾기
         Account account = accountRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+
 
         // 2. 비밀번호 매칭
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
@@ -72,6 +88,7 @@ public class AccountService {
                 .refreshToken(tokenDto.getRefreshToken())
                 .build();
         refreshTokenRepository.save(refreshToken);
+
 
         // 5. 발급된 토큰 반환
         return tokenDto;

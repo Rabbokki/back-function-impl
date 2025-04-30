@@ -50,6 +50,15 @@ public class Account extends BaseEntity{
     @Column(nullable = true)
     private String providerId;
 
+
+    @Column(nullable = false)
+    private boolean agreeTerms;
+
+    @Column(nullable = false)
+    private boolean agreeMarketing;
+
+
+
     @OneToMany(mappedBy = "account",
             cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
