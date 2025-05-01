@@ -1,7 +1,7 @@
 package com.backfunctionimpl.review.dto;
 
 
-import com.backendfunction.review.entity.Review;
+import com.backfunctionimpl.review.entity.Review;
 import lombok.Data;
 
 import java.time.LocalDateTime;
