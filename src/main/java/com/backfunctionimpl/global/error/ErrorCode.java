@@ -49,6 +49,8 @@ public enum ErrorCode {
     SKYSCANNER_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "F001", "Skyscanner API 호출에 실패했습니다."),
     INVALID_FLIGHT_SEARCH(HttpStatus.BAD_REQUEST.value(), "F002", "유효하지 않은 항공편 검색 조건입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "F003", "서버 내부 오류"),
+    //Amadeus
+    AMADEUS_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "F004", "Amadeus API 호출에 실패했습니다.");
 
     //Like
     ;

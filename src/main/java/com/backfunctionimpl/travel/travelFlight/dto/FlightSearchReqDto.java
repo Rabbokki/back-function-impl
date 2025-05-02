@@ -1,17 +1,24 @@
 package com.backfunctionimpl.travel.travelFlight.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.util.Objects;
 
 @Data
 public class FlightSearchReqDto {
+    @NotBlank(message = "Origin city is required")
     private String origin;
+
+    @NotBlank(message = "Destination city is required")
     private String destination;
+
+    @NotBlank(message = "Departure date is required")
+    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Departure date must be in YYYY-MM-DD format")
     private String departureDate;
-    private boolean realTime; // 실시간 요청 플래그
+
+    private boolean realTime;
 
     @Override
     public boolean equals(Object o) {
