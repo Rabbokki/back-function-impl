@@ -1,13 +1,13 @@
 package com.backfunctionimpl.review.service;
 
 
-import com.backendfunction.account.entity.Account;
-import com.backendfunction.global.dto.ResponseDto;
-import com.backendfunction.post.entity.Post;
-import com.backendfunction.post.repository.PostRepository;
-import com.backendfunction.review.dto.ReviewSummaryDto;
-import com.backendfunction.review.entity.Review;
-import com.backendfunction.review.repository.ReviewRepository;
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.global.dto.ResponseDto;
+import com.backfunctionimpl.post.entity.Post;
+import com.backfunctionimpl.post.repository.PostRepository;
+import com.backfunctionimpl.review.dto.ReviewSummaryDto;
+import com.backfunctionimpl.review.entity.Review;
+import com.backfunctionimpl.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

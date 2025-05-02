@@ -1,11 +1,11 @@
 package com.backfunctionimpl.review.controller;
 
-import com.backendfunction.account.entity.Account;
-import com.backendfunction.account.repository.AccountRepository;
-import com.backendfunction.global.dto.ResponseDto;
-import com.backendfunction.global.security.user.UserDetailsImpl;
-import com.backendfunction.review.dto.ReviewDTO;
-import com.backendfunction.review.service.ReviewService;
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.repository.AccountRepository;
+import com.backfunctionimpl.global.dto.ResponseDto;
+import com.backfunctionimpl.global.security.user.UserDetailsImpl;
+import com.backfunctionimpl.review.dto.ReviewDto;
+import com.backfunctionimpl.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +24,7 @@ public class ReviewController {
 
     @PostMapping("/{postId}")
     public ResponseDto<?> addOrUpdateReview(@PathVariable("postId") Long postId,
-                                            @RequestBody ReviewDTO reviewDTO,
+                                            @RequestBody ReviewDto reviewDTO,
                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         System.out.println("Received reviewDTO: " + reviewDTO);
         if (reviewDTO.getAccountId() == null) {

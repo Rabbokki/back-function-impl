@@ -1,8 +1,8 @@
 package com.backfunctionimpl.review.repository;
 
-import com.backendfunction.account.entity.Account;
-import com.backendfunction.post.entity.Post;
-import com.backendfunction.review.entity.Review;
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.post.entity.Post;
+import com.backfunctionimpl.review.entity.Review;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
