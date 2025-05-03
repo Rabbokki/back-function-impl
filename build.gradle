@@ -60,6 +60,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     //Jackson Json 매핑
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    //h2 테스트용
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 tasks.named('test') {

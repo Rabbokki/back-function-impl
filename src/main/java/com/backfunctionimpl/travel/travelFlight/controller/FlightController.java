@@ -23,42 +23,63 @@ public class FlightController {
     private final FlightSearchService flightSearchService;
 
     @PostMapping("/search")
-    public ResponseEntity<FlightSearchResDto> searchFlights(@Valid @RequestBody FlightSearchReqDto reqDto) {
+    public ResponseEntity<ResponseDto<FlightSearchResDto>> searchFlights(@Valid @RequestBody FlightSearchReqDto reqDto) {
+        log.info("Received flight search request: {}", reqDto);
         try {
             FlightSearchResDto response = flightSearchService.searchFlights(reqDto);
-            return ResponseEntity.ok(response);
-        } catch (JsonParseException e) {
-            FlightSearchResDto errorResponse = new FlightSearchResDto();
-            errorResponse.setSuccess(false);
-            errorResponse.setErrorCode(ErrorCode.INVALID_MESSAGE);
-            return ResponseEntity.badRequest().body(errorResponse);
+            log.info("Returning {} flights for request: {}", response.getData().getFlights().size(), reqDto);
+            return ResponseEntity.ok(ResponseDto.success(response));
+        } catch (CustomException e) {
+            log.error("Flight search error: {}", e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(ResponseDto.fail(e.getErrorCode().getCode(), e.getErrorCode().getMessage()));
+        } catch (HttpMessageNotReadableException e) {
+            log.error("JSON parse error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ResponseDto.fail(ErrorCode.INVALID_JSON.getCode(), ErrorCode.INVALID_JSON.getMessage()));
         } catch (Exception e) {
-            FlightSearchResDto errorResponse = new FlightSearchResDto();
-            errorResponse.setSuccess(false);
-            errorResponse.setErrorCode(ErrorCode.INVALID_MESSAGE);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            log.error("Unexpected error during flight search: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
         }
     }
 
     @PostMapping("/save")
-    public ResponseDto<Long> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam Long travelPlanId) {
+    public ResponseEntity<ResponseDto<Long>> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam Long travelPlanId) {
+        log.info("Saving flight for request: {}, travelPlanId: {}", reqDto, travelPlanId);
         try {
             Long flightId = flightSearchService.saveFlight(reqDto, travelPlanId);
-            return ResponseDto.success(flightId);
+            log.info("Flight saved successfully with ID: {}", flightId);
+            return ResponseEntity.ok(ResponseDto.success(flightId));
         } catch (CustomException e) {
-            return ResponseDto.fail(e.getErrorCode().getCode(), e.getMessage());
+            log.error("Flight save error: {}", e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(ResponseDto.fail(e.getErrorCode().getCode(), e.getErrorCode().getMessage()));
         } catch (HttpMessageNotReadableException e) {
             log.error("JSON parse error: {}", e.getMessage());
-            return ResponseDto.fail(ErrorCode.INVALID_FLIGHT_SEARCH.getCode(), "Invalid JSON format in request body");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ResponseDto.fail(ErrorCode.INVALID_JSON.getCode(), ErrorCode.INVALID_JSON.getMessage()));
         } catch (Exception e) {
-            log.error("Flight save error: {}", e.getMessage());
-            return ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "Internal server error");
+            log.error("Unexpected error during flight save: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
         }
     }
 
     @PostMapping("/clear-cache")
-    public ResponseDto<String> clearFlightCache(@Valid @RequestBody FlightSearchReqDto reqDto) {
-        flightSearchService.clearFlightCache(reqDto);
-        return ResponseDto.success("Cache cleared successfully");
+    public ResponseEntity<ResponseDto<String>> clearFlightCache(@Valid @RequestBody FlightSearchReqDto reqDto) {
+        log.info("Clearing flight cache for request: {}", reqDto);
+        try {
+            flightSearchService.clearFlightCache(reqDto);
+            log.info("Flight cache cleared successfully for request: {}", reqDto);
+            return ResponseEntity.ok(ResponseDto.success("Cache cleared successfully"));
+        } catch (Exception e) {
+            log.error("Error clearing flight cache: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
+        }
     }
 }
