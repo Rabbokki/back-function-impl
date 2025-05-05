@@ -8,10 +8,12 @@ import java.util.Objects;
 
 @Data
 public class FlightSearchReqDto {
-    @NotBlank(message = "Origin city is required")
+    @NotBlank(message = "Origin is required")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "Origin must be a 3-letter IATA code")
     private String origin;
 
-    @NotBlank(message = "Destination city is required")
+    @NotBlank(message = "Destination is required")
+    @Pattern(regexp = "^[A-Z]{3}$", message = "Destination must be a 3-letter IATA code")
     private String destination;
 
     @NotBlank(message = "Departure date is required")
