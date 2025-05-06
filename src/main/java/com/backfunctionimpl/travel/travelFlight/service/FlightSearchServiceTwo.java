@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.RedisConnectionFailureException;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -171,12 +173,12 @@ public class FlightSearchServiceTwo {
             return processFlightData(data);
         }
 
-        WebClient client = WebClient.builder()
-                .baseUrl("https://test.api.amadeus.com")
-                .defaultHeader("Authorization", "Bearer " + amadeusClient.getAccessToken())
-                .build();
-
         try {
+            WebClient client = WebClient.builder()
+                    .baseUrl("https://test.api.amadeus.com")
+                    .defaultHeader("Authorization", "Bearer " + amadeusClient.getAccessToken())
+                    .build();
+
             JsonNode response = client.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/v2/shopping/flight-offers")
@@ -205,6 +207,12 @@ public class FlightSearchServiceTwo {
                     .block();
 
             return processFlightData(response != null && response.has("data") ? response.get("data") : objectMapper.createArrayNode());
+        } catch (RedisConnectionFailureException e) {
+            log.error("Redis connection failed: {}", e.getMessage(), e);
+            throw new CustomException(ErrorCode.REDIS_CONNECTION_ERROR);
+        } catch (SerializationException e) {
+            log.error("Redis serialization failed: {}", e.getMessage(), e);
+            throw new CustomException(ErrorCode.REDIS_SERIALIZATION_ERROR);
         } catch (CustomException e) {
             log.error("Amadeus API error: {}", e.getErrorCode().getMessage(), e);
             throw e;

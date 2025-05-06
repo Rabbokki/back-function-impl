@@ -51,7 +51,10 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "F003", "서버 내부 오류"),
     AMADEUS_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "F004", "Amadeus API 호출에 실패했습니다."),
     INVALID_JSON(HttpStatus.BAD_REQUEST.value(), "F005", "유효하지 않은 JSON 형식입니다."),
-    INVALID_REQUEST(HttpStatus.BAD_REQUEST.value(),"F006" ,"Use a 3-letter IATA code or supported city name (e.g., 서울, 도쿄)." );
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST.value(),"F006" ,"Use a 3-letter IATA code or supported city name (e.g., 서울, 도쿄)." ),
+    REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_003", "Failed to connect to Redis server"),
+    REDIS_SERIALIZATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_004", "Failed to serialize object for Redis")
+    ;
 
     private final int httpStatus;
     private final String code;

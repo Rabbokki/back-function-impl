@@ -4,10 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Data
-public class FlightSearchReqDto {
+public class FlightSearchReqDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     @NotBlank(message = "Origin is required")
     @Pattern(regexp = "^[A-Z]{3}$", message = "Origin must be a 3-letter IATA code")
     private String origin;
