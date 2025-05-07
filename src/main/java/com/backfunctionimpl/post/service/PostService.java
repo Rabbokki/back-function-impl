@@ -54,6 +54,9 @@ public class PostService {
                 saved.getViews(),
                 saved.getCommentsCount(),
                 saved.getLikeCount(),
+                saved.getReviewSize(),
+                saved.getTotalRating(),
+                saved.getAverageRating(),
                 saved.getTags().stream().map(PostTag::getTagName).toList()
         );
     }
@@ -70,6 +73,9 @@ public class PostService {
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
+                        post.getReviewSize(),
+                        post.getTotalRating(),
+                        post.getAverageRating(),
                         post.getTags().stream().map(PostTag::getTagName).toList()
                 ))
                 .toList();
@@ -94,6 +100,9 @@ public class PostService {
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
+                        post.getReviewSize(),
+                        post.getTotalRating(),
+                        post.getAverageRating(),
                         post.getTags().stream().map(PostTag::getTagName).toList()
                 ))
                 .toList();
@@ -154,6 +163,9 @@ public class PostService {
                 post.getViews(),
                 post.getCommentsCount(),
                 post.getLikeCount(),
+                post.getReviewSize(),
+                post.getTotalRating(),
+                post.getAverageRating(),
                 post.getTags().stream().map(PostTag::getTagName).toList()
         );
     }

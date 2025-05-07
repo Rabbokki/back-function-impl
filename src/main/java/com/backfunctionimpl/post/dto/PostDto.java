@@ -20,11 +20,14 @@ public class PostDto {
     private int views;
     private int commentsCount;
     private int likeCount;
+    private int reviewSize;
+    private int totalRating;
+    private float averageRating;
     private List<String> tags;
 
     // 모든 필드를 받는 생성자 추가
     public PostDto(Long id, String title, String content, List<String> imgUrl, Category category,
-                   int views, int commentsCount, int likeCount, List<String> tags) {
+                   int views, int commentsCount, int likeCount, int reviewSize, int totalRating, float averageRating, List<String> tags) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -33,6 +36,9 @@ public class PostDto {
         this.views = views;
         this.commentsCount = commentsCount;
         this.likeCount = likeCount;
+        this.reviewSize = reviewSize;
+        this.totalRating = totalRating;
+        this.averageRating = averageRating;
         this.tags = tags;
     }
 }
