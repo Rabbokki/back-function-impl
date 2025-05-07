@@ -3,10 +3,14 @@ package com.backfunctionimpl.travel.travelFlight.entity;
 import com.backfunctionimpl.account.entity.BaseEntity;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
 public class TravelFlight extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -58,6 +58,14 @@ dependencies {
     // Redis 의존성 추가
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
+    //Jackson Json 매핑
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    // Amadeus
+    implementation 'com.amadeus:amadeus-java:10.0.0'
+    //h2 테스트용
+    testImplementation 'com.h2database:h2'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 tasks.named('test') {

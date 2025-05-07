@@ -22,6 +22,7 @@ public class ReviewSummaryDto {
         this.createdAt = review.getCreatedAt();
     }
 }
+
 //package com.backfunctionimpl.review.dto;
 //
 //

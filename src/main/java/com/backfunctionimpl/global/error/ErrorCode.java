@@ -45,12 +45,15 @@ public enum ErrorCode {
     // NOTIFICATION
     DOESNT_EXIST_NOTIFICATION(HttpStatus.NOT_FOUND.value(), "N001", "해당하는 알림이 존재하지 않습니다"),
 
-    // FLIGHT SEARCH (Skyscanner API)
+    // FLIGHT SEARCH
     SKYSCANNER_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "F001", "Skyscanner API 호출에 실패했습니다."),
     INVALID_FLIGHT_SEARCH(HttpStatus.BAD_REQUEST.value(), "F002", "유효하지 않은 항공편 검색 조건입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "F003", "서버 내부 오류"),
-
-    //Like
+    AMADEUS_API_ERROR(HttpStatus.BAD_GATEWAY.value(), "F004", "Amadeus API 호출에 실패했습니다."),
+    INVALID_JSON(HttpStatus.BAD_REQUEST.value(), "F005", "유효하지 않은 JSON 형식입니다."),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST.value(),"F006" ,"Use a 3-letter IATA code or supported city name (e.g., 서울, 도쿄)." ),
+    REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_003", "Failed to connect to Redis server"),
+    REDIS_SERIALIZATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_004", "Failed to serialize object for Redis")
     ;
 
     private final int httpStatus;
