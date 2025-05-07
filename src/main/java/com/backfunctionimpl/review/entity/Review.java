@@ -1,9 +1,9 @@
 package com.backfunctionimpl.review.entity;
 
 
-import com.backendfunction.account.entity.Account;
-import com.backendfunction.account.entity.BaseEntity;
-import com.backendfunction.post.entity.Post;
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.entity.BaseEntity;
+import com.backfunctionimpl.post.entity.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

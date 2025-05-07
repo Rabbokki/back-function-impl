@@ -53,11 +53,36 @@ public class Post extends BaseEntity {
     @JoinColumn(name = "user_id")
     private Account account;
 
+    // 🔹 리뷰 수 (추가된 필드)
+    private int reviewSize = 0;
+
+    // 🔹 평균 평점 (추가된 필드)
+    private double averageRating = 0.0;
+
+    // 🔹 리뷰 수 업데이트 메서드 (추가된 메서드)
+    public void setReviewSize(int reviewSize) {
+        this.reviewSize = reviewSize;
+    }
+
+    // 🔹 평균 평점 재계산 메서드 (추가된 메서드)
+    public void recalculateAverageRating() {
+        // 여기서 실제로 평균을 계산하는 로직을 작성해야 합니다.
+        // 예시로는 리뷰들의 평균 평점을 계산하는 방식입니다.
+        if (this.reviewSize > 0) {
+            // 실제로는 리뷰들의 평점을 기준으로 평균을 계산해야 합니다.
+            // 예를 들어 리뷰들의 평점 합을 가져와 평균을 계산해야 합니다.
+            // 임시로 0으로 설정해두었습니다.
+            this.averageRating = 0.0;  // 여기에서 실제 평점 평균을 계산해야 합니다.
+        } else {
+            this.averageRating = 0.0;  // 리뷰가 없다면 평균 평점은 0
+        }
+    }
+
     public void commentUpdate(int size) {
-        this.commentsCount=size;
+        this.commentsCount = size;
     }
 
     public void likeUpdate(int size) {
-        this.likeCount=size;
+        this.likeCount = size;
     }
 }

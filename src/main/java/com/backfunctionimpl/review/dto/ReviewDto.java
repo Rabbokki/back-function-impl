@@ -12,7 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ReviewDTO {
+public class ReviewDto {
     private Long id;
     private Long postId;
     private Long accountId;
@@ -20,7 +20,7 @@ public class ReviewDTO {
     private String nickname;
     private String content;
 
-    public ReviewDTO(Review review) {
+    public ReviewDto(Review review) {
         this.id = review.getId();
         this.postId = review.getPost().getId();
         this.accountId = review.getAccount().getId();
