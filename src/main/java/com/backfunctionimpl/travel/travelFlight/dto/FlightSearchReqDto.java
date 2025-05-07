@@ -10,6 +10,7 @@ import java.util.Objects;
 @Data
 public class FlightSearchReqDto implements Serializable {
     private static final long serialVersionUID = 1L;
+
     @NotBlank(message = "Origin is required")
     @Pattern(regexp = "^[A-Z]{3}$", message = "Origin must be a 3-letter IATA code")
     private String origin;
@@ -22,6 +23,9 @@ public class FlightSearchReqDto implements Serializable {
     @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Departure date must be in YYYY-MM-DD format")
     private String departureDate;
 
+    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Return date must be in YYYY-MM-DD format")
+    private String returnDate;
+
     private boolean realTime;
 
     @Override
@@ -29,13 +33,15 @@ public class FlightSearchReqDto implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FlightSearchReqDto that = (FlightSearchReqDto) o;
-        return Objects.equals(origin, that.origin) &&
+        return realTime == that.realTime &&
+                Objects.equals(origin, that.origin) &&
                 Objects.equals(destination, that.destination) &&
-                Objects.equals(departureDate, that.departureDate);
+                Objects.equals(departureDate, that.departureDate) &&
+                Objects.equals(returnDate, that.returnDate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(origin, destination, departureDate);
+        return Objects.hash(origin, destination, departureDate, returnDate, realTime);
     }
 }

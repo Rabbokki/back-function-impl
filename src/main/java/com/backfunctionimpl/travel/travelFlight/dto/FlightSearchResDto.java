@@ -7,6 +7,8 @@ import java.io.Serializable;
 import java.util.List;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class FlightSearchResDto implements Serializable {
 
     private static final long serialVersionUID = 1L;

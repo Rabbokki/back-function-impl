@@ -27,13 +27,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
@@ -44,134 +42,14 @@ public class FlightSearchServiceTwo {
     private final TravelFlightRepository travelFlightRepository;
     private final TravelPlanRepository travelPlanRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private static final Pattern IATA_CODE_PATTERN = Pattern.compile("^[A-Z]{3}$");
-    private static final Map<String, String> CITY_TO_IATA = new HashMap<>();
-
-    static {
-        CITY_TO_IATA.put("서울", "ICN");
-        CITY_TO_IATA.put("도쿄", "NRT");
-        CITY_TO_IATA.put("오사카", "KIX");
-        CITY_TO_IATA.put("LA", "LAX");
-        CITY_TO_IATA.put("파리", "CDG");
-        CITY_TO_IATA.put("뉴욕", "JFK");
-    }
-
-    private static final Map<String, JsonNode> HARDCODED_FLIGHTS = new HashMap<>();
-
-    static {
-        ObjectMapper mapper = new ObjectMapper();
-        ArrayNode flights = mapper.createArrayNode();
-
-        // ICN -> CDG
-        ObjectNode flight1 = mapper.createObjectNode();
-        flight1.put("id", "1");
-        ObjectNode price1 = mapper.createObjectNode();
-        price1.put("total", "1200.00");
-        price1.put("currency", "KRW");
-        flight1.set("price", price1);
-        flight1.put("numberOfBookableSeats", 10);
-        ArrayNode itineraries1 = mapper.createArrayNode();
-        ObjectNode itinerary1 = mapper.createObjectNode();
-        itinerary1.put("duration", "PT12H");
-        ArrayNode segments1 = mapper.createArrayNode();
-        ObjectNode segment1 = mapper.createObjectNode();
-        segment1.put("carrierCode", "KE");
-        segment1.put("number", "901");
-        ObjectNode departure1 = mapper.createObjectNode();
-        departure1.put("iataCode", "ICN");
-        departure1.put("at", "2025-06-01T10:00:00");
-        segment1.set("departure", departure1);
-        ObjectNode arrival1 = mapper.createObjectNode();
-        arrival1.put("iataCode", "CDG");
-        arrival1.put("at", "2025-06-01T22:00:00");
-        segment1.set("arrival", arrival1);
-        ObjectNode aircraft1 = mapper.createObjectNode();
-        aircraft1.put("code", "789");
-        segment1.set("aircraft", aircraft1);
-        segments1.add(segment1);
-        itinerary1.set("segments", segments1);
-        itineraries1.add(itinerary1);
-        flight1.set("itineraries", itineraries1);
-        ArrayNode travelerPricings1 = mapper.createArrayNode();
-        ObjectNode travelerPricing1 = mapper.createObjectNode();
-        ArrayNode fareDetails1 = mapper.createArrayNode();
-        ObjectNode fareDetail1 = mapper.createObjectNode();
-        ObjectNode baggage1 = mapper.createObjectNode();
-        baggage1.put("quantity", 1);
-        baggage1.put("weight", 23);
-        fareDetail1.set("includedCheckedBags", baggage1);
-        fareDetails1.add(fareDetail1);
-        travelerPricing1.set("fareDetailsBySegment", fareDetails1);
-        travelerPricings1.add(travelerPricing1);
-        flight1.set("travelerPricings", travelerPricings1);
-        flights.add(flight1);
-
-        // CDG -> JFK
-        ObjectNode flight2 = mapper.createObjectNode();
-        flight2.put("id", "2");
-        ObjectNode price2 = mapper.createObjectNode();
-        price2.put("total", "800.00");
-        price2.put("currency", "EUR");
-        flight2.set("price", price2);
-        flight2.put("numberOfBookableSeats", 15);
-        ArrayNode itineraries2 = mapper.createArrayNode();
-        ObjectNode itinerary2 = mapper.createObjectNode();
-        itinerary2.put("duration", "PT8H");
-        ArrayNode segments2 = mapper.createArrayNode();
-        ObjectNode segment2 = mapper.createObjectNode();
-        segment2.put("carrierCode", "AF");
-        segment2.put("number", "006");
-        ObjectNode departure2 = mapper.createObjectNode();
-        departure2.put("iataCode", "CDG");
-        departure2.put("at", "2025-06-01T09:00:00");
-        segment2.set("departure", departure2);
-        ObjectNode arrival2 = mapper.createObjectNode();
-        arrival2.put("iataCode", "JFK");
-        arrival2.put("at", "2025-06-01T17:00:00");
-        segment2.set("arrival", arrival2);
-        ObjectNode aircraft2 = mapper.createObjectNode();
-        aircraft2.put("code", "380");
-        segment2.set("aircraft", aircraft2);
-        segments2.add(segment2);
-        itinerary2.set("segments", segments2);
-        itineraries2.add(itinerary2);
-        flight2.set("itineraries", itineraries2);
-        ArrayNode travelerPricings2 = mapper.createArrayNode();
-        ObjectNode travelerPricing2 = mapper.createObjectNode();
-        ArrayNode fareDetails2 = mapper.createArrayNode();
-        ObjectNode fareDetail2 = mapper.createObjectNode();
-        ObjectNode baggage2 = mapper.createObjectNode();
-        baggage2.put("quantity", 2);
-        baggage2.put("weight", 23);
-        fareDetail2.set("includedCheckedBags", baggage2);
-        fareDetails2.add(fareDetail2);
-        travelerPricing2.set("fareDetailsBySegment", fareDetails2);
-        travelerPricings2.add(travelerPricing2);
-        flight2.set("travelerPricings", travelerPricings2);
-        flights.add(flight2);
-
-        HARDCODED_FLIGHTS.put("ICN-CDG-2025-06-01", flights);
-        HARDCODED_FLIGHTS.put("CDG-JFK-2025-06-01", flights);
-    }
 
     @Cacheable(value = "flights", key = "#reqDto.origin + '-' + #reqDto.destination + '-' + #reqDto.departureDate", unless = "#reqDto.realTime")
     public FlightSearchResDto searchFlights(FlightSearchReqDto reqDto) {
         log.info("Searching flights for request: {}", reqDto);
         validateSearchRequest(reqDto);
 
-        // IATA 코드 변환
-        String origin = convertToIataCode(reqDto.getOrigin());
-        String destination = convertToIataCode(reqDto.getDestination());
-        reqDto.setOrigin(origin);
-        reqDto.setDestination(destination);
-
-        // 하드코딩된 비행 데이터 확인
-        String flightKey = origin + "-" + destination + "-" + reqDto.getDepartureDate();
-        if (HARDCODED_FLIGHTS.containsKey(flightKey)) {
-            log.info("Returning hardcoded flights for key: {}", flightKey);
-            JsonNode data = HARDCODED_FLIGHTS.get(flightKey);
-            return processFlightData(data);
-        }
+        String origin = reqDto.getOrigin();
+        String destination = reqDto.getDestination();
 
         try {
             WebClient client = WebClient.builder()
@@ -180,14 +58,20 @@ public class FlightSearchServiceTwo {
                     .build();
 
             JsonNode response = client.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/v2/shopping/flight-offers")
-                            .queryParam("originLocationCode", origin)
-                            .queryParam("destinationLocationCode", destination)
-                            .queryParam("departureDate", reqDto.getDepartureDate())
-                            .queryParam("adults", 1)
-                            .queryParam("nonStop", reqDto.isRealTime())
-                            .build())
+                    .uri(uriBuilder -> {
+                        uriBuilder
+                                .path("/v2/shopping/flight-offers")
+                                .queryParam("originLocationCode", origin)
+                                .queryParam("destinationLocationCode", destination)
+                                .queryParam("departureDate", reqDto.getDepartureDate())
+                                .queryParam("adults", 1)
+                                .queryParam("nonStop", true)
+                                .queryParam("currencyCode", "EUR");
+                        if (reqDto.getReturnDate() != null && !reqDto.getReturnDate().isEmpty()) {
+                            uriBuilder.queryParam("returnDate", reqDto.getReturnDate());
+                        }
+                        return uriBuilder.build();
+                    })
                     .retrieve()
                     .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), clientResponse -> {
                         log.error("Amadeus API error: status={}", clientResponse.statusCode());
@@ -197,6 +81,7 @@ public class FlightSearchServiceTwo {
                                     try {
                                         JsonNode errorJson = objectMapper.readTree(body);
                                         String detail = errorJson.path("errors").path(0).path("detail").asText("Unknown error");
+                                        log.error("Amadeus API error detail: {}", detail);
                                         return new CustomException(ErrorCode.AMADEUS_API_ERROR);
                                     } catch (Exception e) {
                                         return new CustomException(ErrorCode.AMADEUS_API_ERROR);
@@ -206,7 +91,12 @@ public class FlightSearchServiceTwo {
                     .bodyToMono(JsonNode.class)
                     .block();
 
-            return processFlightData(response != null && response.has("data") ? response.get("data") : objectMapper.createArrayNode());
+            log.info("Amadeus API response: {}", response);
+            if (response == null || !response.has("data")) {
+                log.warn("No flight data returned from Amadeus API");
+                return new FlightSearchResDto(true, new ArrayList<>());
+            }
+            return processFlightData(response.get("data"), origin, destination, reqDto.getReturnDate() != null);
         } catch (RedisConnectionFailureException e) {
             log.error("Redis connection failed: {}", e.getMessage(), e);
             throw new CustomException(ErrorCode.REDIS_CONNECTION_ERROR);
@@ -222,49 +112,172 @@ public class FlightSearchServiceTwo {
         }
     }
 
-    private FlightSearchResDto processFlightData(JsonNode data) {
+    private FlightSearchResDto processFlightData(JsonNode data, String origin, String requestedDestination, boolean isRoundTrip) {
         List<FlightInfo> results = new ArrayList<>();
+        Map<String, String> carrierMap = getCarrierMap();
+        Set<String> uniqueFlights = new HashSet<>(); // 중복 항공편 제거
+
+        // 노선별 최소 소요 시간 (시간 단위)
+        Map<String, Integer> minDurationMap = new HashMap<>();
+        minDurationMap.put("CDG-JFK", 7); // 7시간
+        minDurationMap.put("JFK-CDG", 6); // 6시간
+        minDurationMap.put("CDG-NCE", 1); // 1시간
+        minDurationMap.put("CDG-LHR", 1); // 1시간
+        minDurationMap.put("CDG-FRA", 1); // 1시간
+        minDurationMap.put("CDG-MAD", 2); // 2시간
+        minDurationMap.put("CDG-YUL", 7); // 7시간
+        minDurationMap.put("CDG-KEF", 3); // 3시간
+        minDurationMap.put("CDG-LIS", 2); // 2시간
+        minDurationMap.put("CDG-IST", 3); // 3시간
+        minDurationMap.put("CDG-BEG", 2); // 2시간
+        minDurationMap.put("CDG-CMN", 3); // 3시간
+
         if (data != null && !data.isNull()) {
             for (JsonNode flight : data) {
+                // 여정 검증
+                boolean validItineraries = true;
+                String carrierCode = null;
+                String flightKey = null;
+
+                if (!flight.has("itineraries") || !flight.get("itineraries").isArray()) {
+                    log.warn("Skipping flight with invalid itineraries: {}", flight.toString());
+                    continue;
+                }
+
+                JsonNode itineraries = flight.get("itineraries");
+                // 출발 여정 (CDG -> JFK)
+                if (itineraries.size() > 0) {
+                    JsonNode outbound = itineraries.get(0);
+                    if (!outbound.has("segments") || !outbound.get("segments").isArray() || outbound.get("segments").size() == 0) {
+                        log.warn("Skipping flight with invalid outbound segments: {}", flight.toString());
+                        continue;
+                    }
+                    JsonNode segment = outbound.get("segments").get(0);
+                    String departureAirport = segment.has("departure") && segment.get("departure").has("iataCode") ? segment.get("departure").get("iataCode").asText() : "";
+                    String arrivalAirport = segment.has("arrival") && segment.get("arrival").has("iataCode") ? segment.get("arrival").get("iataCode").asText() : "";
+                    carrierCode = segment.has("carrierCode") ? segment.get("carrierCode").asText() : "Unknown";
+
+                    if (!departureAirport.equals(origin) || !arrivalAirport.equals(requestedDestination)) {
+                        log.warn("Skipping flight with invalid outbound route: {} -> {}, expected: {} -> {}", departureAirport, arrivalAirport, origin, requestedDestination);
+                        validItineraries = false;
+                    }
+
+                    // 항공사 코드 검증
+                    if (!carrierMap.containsKey(carrierCode) && !carrierCode.equals("Unknown")) {
+                        log.warn("Skipping flight with unknown carrier code: {}", carrierCode);
+                        validItineraries = false;
+                    }
+
+                    // 소요 시간 검증
+                    String routeKey = departureAirport + "-" + arrivalAirport;
+                    if (outbound.has("duration")) {
+                        try {
+                            Duration duration = Duration.parse(outbound.get("duration").asText());
+                            int minHours = minDurationMap.getOrDefault(routeKey, 1);
+                            if (duration.isNegative() || duration.isZero() || duration.toHours() < minHours) {
+                                log.warn("Skipping flight with invalid outbound duration: {} for route {}", duration, routeKey);
+                                validItineraries = false;
+                            }
+                        } catch (Exception e) {
+                            log.warn("Invalid outbound duration format: {}", outbound.get("duration").asText());
+                            validItineraries = false;
+                        }
+                    }
+                }
+
+                // 귀국 여정 (JFK -> CDG)
+                if (isRoundTrip && itineraries.size() > 1) {
+                    JsonNode inbound = itineraries.get(1);
+                    if (!inbound.has("segments") || !inbound.get("segments").isArray() || inbound.get("segments").size() == 0) {
+                        log.warn("Skipping flight with invalid inbound segments: {}", flight.toString());
+                        continue;
+                    }
+                    JsonNode segment = inbound.get("segments").get(0);
+                    String departureAirport = segment.has("departure") && segment.get("departure").has("iataCode") ? segment.get("departure").get("iataCode").asText() : "";
+                    String arrivalAirport = segment.has("arrival") && segment.get("arrival").has("iataCode") ? segment.get("arrival").get("iataCode").asText() : "";
+                    String inboundCarrierCode = segment.has("carrierCode") ? segment.get("carrierCode").asText() : "Unknown";
+
+                    if (!departureAirport.equals(requestedDestination) || !arrivalAirport.equals(origin)) {
+                        log.warn("Skipping flight with invalid inbound route: {} -> {}, expected: {} -> {}", departureAirport, arrivalAirport, requestedDestination, origin);
+                        validItineraries = false;
+                    }
+
+                    if (!carrierMap.containsKey(inboundCarrierCode) && !inboundCarrierCode.equals("Unknown")) {
+                        log.warn("Skipping flight with unknown inbound carrier code: {}", inboundCarrierCode);
+                        validItineraries = false;
+                    }
+
+                    String routeKey = departureAirport + "-" + arrivalAirport;
+                    if (inbound.has("duration")) {
+                        try {
+                            Duration duration = Duration.parse(inbound.get("duration").asText());
+                            int minHours = minDurationMap.getOrDefault(routeKey, 1);
+                            if (duration.isNegative() || duration.isZero() || duration.toHours() < minHours) {
+                                log.warn("Skipping flight with invalid inbound duration: {} for route {}", duration, routeKey);
+                                validItineraries = false;
+                            }
+                        } catch (Exception e) {
+                            log.warn("Invalid inbound duration format: {}", inbound.get("duration").asText());
+                            validItineraries = false;
+                        }
+                    }
+                }
+
+                if (!validItineraries) {
+                    continue;
+                }
+
+                // 중복 항공편 체크
+                String departureTime = "";
+                String arrivalTime = "";
+                String price = "";
+                JsonNode segment = itineraries.get(0).get("segments").get(0);
+                departureTime = segment.has("departure") && segment.get("departure").has("at") ? segment.get("departure").get("at").asText() : "";
+                arrivalTime = segment.has("arrival") && segment.get("arrival").has("at") ? segment.get("arrival").get("at").asText() : "";
+                price = flight.has("price") && flight.get("price").has("total") ? flight.get("price").get("total").asText() : "";
+                flightKey = carrierCode + "-" + departureTime + "-" + arrivalTime + "-" + price;
+
+                if (!uniqueFlights.add(flightKey)) {
+                    log.warn("Skipping duplicate flight: {}", flightKey);
+                    continue;
+                }
+
+                // FlightInfo 생성
                 FlightInfo info = new FlightInfo();
                 info.setId(flight.has("id") ? flight.get("id").asText() : null);
 
                 if (flight.has("price") && !flight.get("price").isNull()) {
                     JsonNode priceNode = flight.get("price");
                     info.setPrice(priceNode.has("total") ? priceNode.get("total").asText() : null);
-                    info.setCurrency(priceNode.has("currency") ? priceNode.get("currency").asText() : "KRW");
+                    info.setCurrency(priceNode.has("currency") ? priceNode.get("currency").asText() : "EUR");
                 }
 
                 info.setNumberOfBookableSeats(flight.has("numberOfBookableSeats") ? flight.get("numberOfBookableSeats").asInt() : 0);
 
-                if (flight.has("itineraries") && !flight.get("itineraries").isNull() && flight.get("itineraries").isArray() && flight.get("itineraries").size() > 0) {
-                    JsonNode itinerary = flight.get("itineraries").get(0);
-                    info.setDuration(itinerary.has("duration") ? itinerary.get("duration").asText() : null);
+                JsonNode outbound = itineraries.get(0);
+                info.setDuration(outbound.has("duration") ? outbound.get("duration").asText() : null);
 
-                    if (itinerary.has("segments") && !itinerary.get("segments").isNull() && itinerary.get("segments").isArray() && itinerary.get("segments").size() > 0) {
-                        JsonNode segment = itinerary.get("segments").get(0);
-                        info.setCarrierCode(segment.has("carrierCode") ? segment.get("carrierCode").asText() : "Unknown");
-                        info.setCarrier(mapCarrierCodeToName(info.getCarrierCode()));
-                        info.setFlightNumber(segment.has("number") ? segment.get("number").asText() : "Unknown");
+                JsonNode segmentOutbound = outbound.get("segments").get(0);
+                info.setCarrierCode(carrierCode);
+                info.setCarrier(mapCarrierCodeToName(carrierCode));
+                info.setFlightNumber(segmentOutbound.has("number") ? segmentOutbound.get("number").asText() : "Unknown");
 
-                        if (segment.has("departure") && !segment.get("departure").isNull()) {
-                            JsonNode departure = segment.get("departure");
-                            info.setDepartureAirport(departure.has("iataCode") ? departure.get("iataCode").asText() : null);
-                            info.setDepartureTime(departure.has("at") ? departure.get("at").asText() : null);
-                        }
+                if (segmentOutbound.has("departure") && !segmentOutbound.get("departure").isNull()) {
+                    JsonNode departure = segmentOutbound.get("departure");
+                    info.setDepartureAirport(departure.has("iataCode") ? departure.get("iataCode").asText() : null);
+                    info.setDepartureTime(departure.has("at") ? departure.get("at").asText() : null);
+                }
 
-                        if (segment.has("arrival") && !segment.get("arrival").isNull()) {
-                            JsonNode arrival = segment.get("arrival");
-                            info.setArrivalAirport(arrival.has("iataCode") ? arrival.get("iataCode").asText() : null);
-                            info.setArrivalTime(arrival.has("at") ? arrival.get("at").asText() : null);
-                        }
+                if (segmentOutbound.has("arrival") && !segmentOutbound.get("arrival").isNull()) {
+                    JsonNode arrival = segmentOutbound.get("arrival");
+                    info.setArrivalAirport(arrival.has("iataCode") ? arrival.get("iataCode").asText() : null);
+                    info.setArrivalTime(arrival.has("at") ? arrival.get("at").asText() : null);
+                }
 
-                        if (segment.has("aircraft") && !segment.get("aircraft").isNull() && segment.get("aircraft").has("code")) {
-                            info.setAircraft(mapAircraftCode(segment.get("aircraft").get("code").asText()));
-                        } else {
-                            info.setAircraft("Unknown");
-                        }
-                    }
+                if (segmentOutbound.has("aircraft") && !segmentOutbound.get("aircraft").isNull() && segmentOutbound.get("aircraft").has("code")) {
+                    info.setAircraft(mapAircraftCode(segmentOutbound.get("aircraft").get("code").asText()));
+                } else {
+                    info.setAircraft("Unknown");
                 }
 
                 if (flight.has("travelerPricings") && !flight.get("travelerPricings").isNull() && flight.get("travelerPricings").isArray() && flight.get("travelerPricings").size() > 0) {
@@ -298,7 +311,7 @@ public class FlightSearchServiceTwo {
         FlightSearchResDto resDto = new FlightSearchResDto();
         resDto.setSuccess(true);
         resDto.setFlights(results);
-        log.info("Returning {} flights for request", results.size());
+        log.info("Returning {} flights for destination {}", results.size(), requestedDestination);
         return resDto;
     }
 
@@ -335,17 +348,25 @@ public class FlightSearchServiceTwo {
         log.info("Clearing flight cache for request: {}", reqDto);
     }
 
-    private String mapCarrierCodeToName(String carrierCode) {
+    private Map<String, String> getCarrierMap() {
         Map<String, String> carrierMap = new HashMap<>();
         carrierMap.put("KE", "대한항공");
         carrierMap.put("OZ", "아시아나항공");
-        carrierMap.put("7C", "제주항공");
-        carrierMap.put("LJ", "진에어");
-        carrierMap.put("RS", "에어서울");
-        carrierMap.put("TW", "티웨이항공");
-        carrierMap.put("BX", "에어부산");
-        carrierMap.put("ZE", "이스타항공");
-        return carrierMap.getOrDefault(carrierCode, carrierCode);
+        carrierMap.put("AF", "Air France");
+        carrierMap.put("DL", "Delta Air Lines");
+        carrierMap.put("LH", "Lufthansa");
+        carrierMap.put("IB", "Iberia");
+        carrierMap.put("UA", "United Airlines");
+        carrierMap.put("BA", "British Airways");
+        carrierMap.put("FI", "Icelandair");
+        carrierMap.put("TK", "Turkish Airlines");
+        carrierMap.put("JU", "Air Serbia");
+        carrierMap.put("AT", "Royal Air Maroc");
+        return carrierMap;
+    }
+
+    private String mapCarrierCodeToName(String carrierCode) {
+        return getCarrierMap().getOrDefault(carrierCode, carrierCode);
     }
 
     private String mapAircraftCode(String aircraftCode) {
@@ -354,6 +375,7 @@ public class FlightSearchServiceTwo {
         aircraftMap.put("380", "Airbus A380");
         aircraftMap.put("737", "Boeing 737");
         aircraftMap.put("320", "Airbus A320");
+        aircraftMap.put("767", "Boeing 767");
         return aircraftMap.getOrDefault(aircraftCode, aircraftCode);
     }
 
@@ -372,21 +394,16 @@ public class FlightSearchServiceTwo {
                 log.error("Departure date {} is after max allowed date {}", departureDate, maxDate);
                 throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
             }
+            if (reqDto.getReturnDate() != null && !reqDto.getReturnDate().isEmpty()) {
+                LocalDate returnDate = LocalDate.parse(reqDto.getReturnDate());
+                if (returnDate.isBefore(departureDate)) {
+                    log.error("Return date {} is before departure date {}", returnDate, departureDate);
+                    throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
+                }
+            }
         } catch (DateTimeParseException e) {
-            log.error("Invalid departure date format: {}", reqDto.getDepartureDate());
+            log.error("Invalid date format: departureDate={}, returnDate={}", reqDto.getDepartureDate(), reqDto.getReturnDate());
             throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
         }
-    }
-
-    private String convertToIataCode(String input) {
-        if (IATA_CODE_PATTERN.matcher(input).matches()) {
-            return input;
-        }
-        String iata = CITY_TO_IATA.get(input);
-        if (iata == null) {
-            log.error("Invalid input: {}. Must be a 3-letter IATA code or supported city name.", input);
-            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
-        }
-        return iata;
     }
 }
