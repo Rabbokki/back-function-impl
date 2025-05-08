@@ -6,11 +6,13 @@ import com.backfunctionimpl.post.entity.Image;
 import com.backfunctionimpl.post.entity.Post;
 import com.backfunctionimpl.post.entity.PostTag;
 import com.backfunctionimpl.post.repository.PostRepository;
+import com.backfunctionimpl.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,6 +20,7 @@ import java.util.List;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final S3Service s3Service;
 
     // 게시글 생성
     public PostDto createPost(PostDto dto, List<MultipartFile> imgs, Account account) {
@@ -27,7 +30,15 @@ public class PostService {
                 .account(account)
                 .build();
 
-        List<Image> images = dto.getImgUrl().stream()
+        List<String> uploadedUrls = new ArrayList<>();
+        if (imgs != null) {
+            for (MultipartFile img : imgs) {
+                String uploadedUrl = s3Service.uploadFile(img);  // This returns full URL
+                uploadedUrls.add(uploadedUrl);
+            }
+        }
+
+        List<Image> images = uploadedUrls.stream()
                 .map(url -> Image.builder()
                         .imageUrl(url)
                         .post(post)
@@ -47,6 +58,7 @@ public class PostService {
 
         return new PostDto(
                 saved.getId(),
+                post.getAccount().getId(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(Image::getImageUrl).toList(),
@@ -66,6 +78,7 @@ public class PostService {
         return postRepository.findAll().stream()
                 .map(post -> new PostDto(
                         post.getId(),
+                        post.getAccount().getId(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -93,6 +106,7 @@ public class PostService {
                 })
                 .map(post -> new PostDto(
                         post.getId(),
+                        post.getAccount().getId(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -156,6 +170,7 @@ public class PostService {
 
         return new PostDto(
                 post.getId(),
+                post.getAccount().getId(),
                 post.getTitle(),
                 post.getContent(),
                 post.getImages().stream().map(Image::getImageUrl).toList(),

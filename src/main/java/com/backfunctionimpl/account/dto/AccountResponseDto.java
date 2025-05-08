@@ -9,6 +9,7 @@ import lombok.Getter;
 
 //회원정보 조회용 dto
 public class AccountResponseDto {
+    private Long id;
     private String email;
     private String nickname;
     private String level;
@@ -16,6 +17,7 @@ public class AccountResponseDto {
 
     // Account 객체로부터 변환
     public AccountResponseDto(Account account) {
+        this.id = account.getId();
         this.email = account.getEmail();
         this.nickname = account.getNickname();
         this.level = account.getLevel().name();

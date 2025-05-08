@@ -83,7 +83,7 @@ public class Post extends BaseEntity {
         this.commentsCount = size;
     }
 
-    public void likeUpdate(int size) {
-        this.likeCount = size;
+    public void likeUpdate(int delta) {
+        this.likeCount = Math.max(this.likeCount + delta, 0);
     }
 }
