@@ -42,6 +42,7 @@ public class ReviewService {
         Review review = new Review(post, account, rating, account.getNickname(), content);
         reviewRepository.save(review);
         post.setReviewSize(post.getReviewSize() + 1);
+        post.setTotalRating(post.getTotalRating() + rating);
         post.recalculateAverageRating();
         postRepository.save(post);
 
@@ -59,6 +60,7 @@ public class ReviewService {
 
         reviewRepository.delete(existingReview.get());
         post.setReviewSize(post.getReviewSize() - 1);
+//        post.setTotalRating(post.getTotalRating() - rating);
         post.recalculateAverageRating();
         postRepository.save(post);
         return ResponseDto.success("Review removed successfully");

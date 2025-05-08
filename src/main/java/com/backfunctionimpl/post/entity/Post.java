@@ -55,10 +55,11 @@ public class Post extends BaseEntity {
     private Account account;
 
     // 🔹 리뷰 수 (추가된 필드)
-    private int reviewSize = 0;
+    private int reviewSize;
 
     // 🔹 평균 평점 (추가된 필드)
-    private double averageRating = 0.0;
+    private int totalRating;
+    private float averageRating;
 
     // 🔹 리뷰 수 업데이트 메서드 (추가된 메서드)
     public void setReviewSize(int reviewSize) {
@@ -73,9 +74,9 @@ public class Post extends BaseEntity {
             // 실제로는 리뷰들의 평점을 기준으로 평균을 계산해야 합니다.
             // 예를 들어 리뷰들의 평점 합을 가져와 평균을 계산해야 합니다.
             // 임시로 0으로 설정해두었습니다.
-            this.averageRating = 0.0;  // 여기에서 실제 평점 평균을 계산해야 합니다.
+            this.averageRating = totalRating / reviewSize;  // 여기에서 실제 평점 평균을 계산해야 합니다.
         } else {
-            this.averageRating = 0.0;  // 리뷰가 없다면 평균 평점은 0
+            this.averageRating = 0;  // 리뷰가 없다면 평균 평점은 0
         }
     }
 
@@ -83,7 +84,7 @@ public class Post extends BaseEntity {
         this.commentsCount = size;
     }
 
-    public void likeUpdate(int size) {
-        this.likeCount = size;
+    public void likeUpdate(int delta) {
+        this.likeCount = Math.max(this.likeCount + delta, 0);
     }
 }

@@ -22,13 +22,15 @@ public class LikeController {
     @PostMapping({"/{postId}"})
     public ResponseDto<?> addLike(@PathVariable("postId") Long postId,
                                   @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return likeService.addLike(postId, userDetails.getAccount());
+        Long accountId = userDetails.getAccount().getId();
+        return likeService.addLike(postId, accountId);
     }
 
     @DeleteMapping({"/{postId}"})
     public ResponseDto<?> removeLike(@PathVariable("postId") Long postId,
                                      @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return likeService.removeLike(postId, userDetails.getAccount());
+        Long accountId = userDetails.getAccount().getId();
+        return likeService.removeLike(postId, accountId);
     }
 
     @GetMapping({"/status/{postId}"})
