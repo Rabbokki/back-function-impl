@@ -1,9 +1,6 @@
 package com.backfunctionimpl.account.service;
 
-import com.backfunctionimpl.account.dto.AccountRegisterRequestDto;
-import com.backfunctionimpl.account.dto.AccountResponseDto;
-import com.backfunctionimpl.account.dto.AccountUpdateRequestDto;
-import com.backfunctionimpl.account.dto.LoginRequestDto;
+import com.backfunctionimpl.account.dto.*;
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.RefreshToken;
 import com.backfunctionimpl.account.entity.TravelLevel;
@@ -12,13 +9,15 @@ import com.backfunctionimpl.account.repository.RefreshTokenRepository;
 import com.backfunctionimpl.global.security.jwt.dto.TokenDto;
 import com.backfunctionimpl.global.security.jwt.util.JwtUtil;
 import com.backfunctionimpl.global.security.user.UserDetailsImpl;
+import com.backfunctionimpl.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +27,11 @@ public class AccountService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final S3Service s3Service;
 
 
     //  회원가입
-    public void register(AccountRegisterRequestDto request) {
+    public void register(AccountRegisterRequestDto request, MultipartFile profileImage) {
         // 이메일 중복 검사
         if (accountRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
@@ -49,7 +49,16 @@ public class AccountService {
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
-        account.setImgUrl(null); // 필요 시 프로필 이미지 기본값 지정
+        account.setBio(request.getBio());
+        account.setGender(request.getGender());
+
+       //  프로필 이미지 업로드 처리 (예: S3 업로드 or 로컬 저장)
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String imageUrl = s3Service.uploadFile(profileImage);// <- 여기서 S3에 저장됨
+            account.setImgUrl(imageUrl);
+        } else {
+            account.setImgUrl("/images/default-profile.png"); // 기본 이미지
+        }
         account.setProvider(null);
         account.setProviderId(null);
 
@@ -113,24 +122,75 @@ public class AccountService {
     //회원정보 수정
 
     public AccountResponseDto updateMyInfo(
-            @AuthenticationPrincipal UserDetailsImpl userDetails,
-            AccountUpdateRequestDto updateDto) {
-
+            UserDetailsImpl userDetails,
+            AccountUpdateRequestDto updateDto,
+            MultipartFile profileImage // ✅ 이미지도 함께 받음
+    ) {
         String email = userDetails.getAccount().getEmail();
 
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("해당 이메일을 찾을 수 없습니다."));
 
+        // 닉네임 수정
         if (updateDto.getNickname() != null) {
             account.setNickname(updateDto.getNickname());
         }
 
+        // 비밀번호 수정
         if (updateDto.getPassword() != null) {
             account.setPassword(passwordEncoder.encode(updateDto.getPassword()));
         }
 
+        // 이미지 수정 /삭제
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String imageUrl = s3Service.uploadFile(profileImage); // 업로드
+            account.setImgUrl(imageUrl);
+        } else if (updateDto.getImgUrl() != null && updateDto.getImgUrl().isEmpty()) {
+            // 👉 프론트에서 이미지 삭제 요청 (imgUrl: '')
+            account.setImgUrl("/images/default-profile.png"); // 기본 이미지 설정
+        }
+
+        // 자기소개, 성별, 출생년도 등
+        if (updateDto.getBio() != null) {
+            account.setBio(updateDto.getBio());
+        }
+
+        if (updateDto.getGender() != null) {
+            account.setGender(updateDto.getGender());
+        }
+
+        if (updateDto.getBirthday() != null && !updateDto.getBirthday().isEmpty()) {
+            try {
+                LocalDate birthDate = LocalDate.parse(updateDto.getBirthday());
+                account.setBirthday(birthDate);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("올바른 생년월일 형식이 아닙니다. (예: 1990-01-01)");
+            }
+        }
+
+
+
+        accountRepository.save(account);
+
         return new AccountResponseDto(account);
     }
+
+
+    @Transactional
+    public void changePassword(UserDetailsImpl userDetails, AccountPasswordChangeRequestDto dto) {
+        Account account = accountRepository.findByEmail(userDetails.getAccount().getEmail())
+                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), account.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 새 비밀번호로 변경
+        account.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        accountRepository.save(account);
+    }
+
 
 
 }

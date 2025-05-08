@@ -3,6 +3,7 @@ package com.backfunctionimpl.account.dto;
 import com.backfunctionimpl.account.entity.Account;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.joda.time.LocalDate;
 
 @Getter
 @AllArgsConstructor
@@ -11,6 +12,10 @@ import lombok.Getter;
 public class AccountResponseDto {
     private String email;
     private String nickname;
+    private String imgUrl;
+    private String bio;
+    private String gender;
+    private String birthday;
     private String level;
     private int levelExp;
 
@@ -18,6 +23,10 @@ public class AccountResponseDto {
     public AccountResponseDto(Account account) {
         this.email = account.getEmail();
         this.nickname = account.getNickname();
+        this.imgUrl = account.getImgUrl();
+        this.bio = account.getBio();
+        this.gender = account.getGender();
+        this.birthday= String.valueOf(account.getBirthday());
         this.level = account.getLevel().name();
         this.levelExp = account.getLevelExp();
     }

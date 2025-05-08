@@ -38,11 +38,16 @@ public class Account extends BaseEntity{
     private LocalDate birthday;
     @Column(nullable = false)
     private String password;
-    private String imgUrl;
     @Column(nullable = true)
     private String provider;
     @Column(nullable = true)
     private String providerId;
+
+    private String bio;
+    @Column(nullable = false)
+    private String gender;
+    private String imgUrl;
+
 
 
     @Column(nullable = false)

@@ -94,10 +94,11 @@ amadeus:
 application:
   bucket:
     name: joo-legend
-  servlet:
-    multipart:
-      enabled: true
-      max-file-size: 10MB
-      max-request-size: 50MB
+  spring:
+    servlet:
+      multipart:
+        enabled: true
+        max-file-size: 10MB
+        max-request-size: 50MB
     file:
       upload-dir: /uploads
