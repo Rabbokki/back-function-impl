@@ -23,4 +23,13 @@ public class FlightInfo implements Serializable {
     private String aircraft;
     private String cabinBaggage;
     private int numberOfBookableSeats;
+    // 귀국 여정 필드
+    private String returnDepartureAirport;
+    private String returnArrivalAirport;
+    private String returnDepartureTime;
+    private String returnArrivalTime;
+    private String returnDuration;
+    private String returnCarrier;
+    private String returnCarrierCode;
+    private String returnFlightNumber;
 }

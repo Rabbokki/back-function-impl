@@ -13,10 +13,12 @@ import com.backfunctionimpl.travel.travelFlight.entity.TravelFlight;
 import com.backfunctionimpl.travel.travelFlight.repository.TravelFlightRepository;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import com.backfunctionimpl.travel.travelPlan.repository.TravelPlanRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -35,79 +37,99 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class FlightSearchServiceTwo {
     private final AmadeusClient amadeusClient;
     private final TravelFlightRepository travelFlightRepository;
     private final TravelPlanRepository travelPlanRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
-    @Cacheable(value = "flights", key = "#reqDto.origin + '-' + #reqDto.destination + '-' + #reqDto.departureDate", unless = "#reqDto.realTime")
+    public FlightSearchServiceTwo(AmadeusClient amadeusClient, TravelFlightRepository travelFlightRepository, TravelPlanRepository travelPlanRepository) {
+        this.amadeusClient = amadeusClient;
+        this.travelFlightRepository = travelFlightRepository;
+        this.travelPlanRepository = travelPlanRepository;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+    }
+
+    @Cacheable(
+            value = "flights",
+            key = "#reqDto.origin + '-' + #reqDto.destination + '-' + #reqDto.departureDate + '-' + (#reqDto.returnDate != null ? #reqDto.returnDate : 'none') + '-' + #reqDto.realTime",
+            unless = "#reqDto.realTime"
+    )
     public FlightSearchResDto searchFlights(FlightSearchReqDto reqDto) {
-        log.info("Searching flights for request: {}", reqDto);
+        try {
+            log.info("검색 요청: {}", objectMapper.writeValueAsString(reqDto));
+        } catch (Exception e) {
+            log.error("요청 직렬화 실패: {}", e.getMessage());
+        }
+
         validateSearchRequest(reqDto);
 
         String origin = reqDto.getOrigin();
         String destination = reqDto.getDestination();
+        boolean isRoundTrip = reqDto.isRealTime() &&
+                reqDto.getReturnDate() != null &&
+                !reqDto.getReturnDate().isEmpty();
+
+        WebClient client = WebClient.builder()
+                .baseUrl("https://test.api.amadeus.com")
+                .defaultHeader("Authorization", "Bearer " + amadeusClient.getAccessToken())
+                .build();
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("currencyCode", "USD");
+
+        List<Map<String, Object>> originDestinations = new ArrayList<>();
+        originDestinations.add(Map.of(
+                "id", "1",
+                "originLocationCode", origin,
+                "destinationLocationCode", destination,
+                "departureDateTimeRange", Map.of("date", reqDto.getDepartureDate())
+        ));
+
+        if (isRoundTrip) {
+            originDestinations.add(Map.of(
+                    "id", "2",
+                    "originLocationCode", destination,
+                    "destinationLocationCode", origin,
+                    "departureDateTimeRange", Map.of("date", reqDto.getReturnDate())
+            ));
+            log.info("왕복 포함됨: 귀국 날짜 = {}", reqDto.getReturnDate());
+        }
+
+        requestBody.put("originDestinations", originDestinations);
+        requestBody.put("travelers", List.of(Map.of("id", "1", "travelerType", "ADULT")));
+        requestBody.put("sources", List.of("GDS"));
+        requestBody.put("searchCriteria", Map.of(
+                "maxFlightOffers", 50,
+                "flightFilters", Map.of(
+                        "connectionRestriction", Map.of("maxNumberOfConnections", 2),
+                        "cabinRestrictions", List.of(Map.of(
+                                "cabin", "ECONOMY",
+                                "coverage", "MOST_SEGMENTS",
+                                "originDestinationIds", originDestinations.stream().map(d -> d.get("id")).toList()
+                        ))
+                )
+        ));
 
         try {
-            WebClient client = WebClient.builder()
-                    .baseUrl("https://test.api.amadeus.com")
-                    .defaultHeader("Authorization", "Bearer " + amadeusClient.getAccessToken())
-                    .build();
-
-            JsonNode response = client.get()
-                    .uri(uriBuilder -> {
-                        uriBuilder
-                                .path("/v2/shopping/flight-offers")
-                                .queryParam("originLocationCode", origin)
-                                .queryParam("destinationLocationCode", destination)
-                                .queryParam("departureDate", reqDto.getDepartureDate())
-                                .queryParam("adults", 1)
-                                .queryParam("nonStop", true)
-                                .queryParam("currencyCode", "EUR");
-                        if (reqDto.getReturnDate() != null && !reqDto.getReturnDate().isEmpty()) {
-                            uriBuilder.queryParam("returnDate", reqDto.getReturnDate());
-                        }
-                        return uriBuilder.build();
-                    })
+            JsonNode response = client.post()
+                    .uri("/v2/shopping/flight-offers")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), clientResponse -> {
-                        log.error("Amadeus API error: status={}", clientResponse.statusCode());
-                        return clientResponse.bodyToMono(String.class)
-                                .map(body -> {
-                                    log.error("Flight search error response: {}", body);
-                                    try {
-                                        JsonNode errorJson = objectMapper.readTree(body);
-                                        String detail = errorJson.path("errors").path(0).path("detail").asText("Unknown error");
-                                        log.error("Amadeus API error detail: {}", detail);
-                                        return new CustomException(ErrorCode.AMADEUS_API_ERROR);
-                                    } catch (Exception e) {
-                                        return new CustomException(ErrorCode.AMADEUS_API_ERROR);
-                                    }
-                                });
-                    })
                     .bodyToMono(JsonNode.class)
                     .block();
 
-            log.info("Amadeus API response: {}", response);
             if (response == null || !response.has("data")) {
-                log.warn("No flight data returned from Amadeus API");
-                return new FlightSearchResDto(true, new ArrayList<>());
+                log.warn("Amadeus 응답에 데이터 없음");
+                return new FlightSearchResDto(true, List.of());
             }
-            return processFlightData(response.get("data"), origin, destination, reqDto.getReturnDate() != null);
-        } catch (RedisConnectionFailureException e) {
-            log.error("Redis connection failed: {}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.REDIS_CONNECTION_ERROR);
-        } catch (SerializationException e) {
-            log.error("Redis serialization failed: {}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.REDIS_SERIALIZATION_ERROR);
-        } catch (CustomException e) {
-            log.error("Amadeus API error: {}", e.getErrorCode().getMessage(), e);
-            throw e;
+
+            return processFlightData(response.get("data"), origin, destination, isRoundTrip);
         } catch (Exception e) {
-            log.error("Unexpected error during Amadeus API call: {}", e.getMessage(), e);
+            log.error("API 호출 실패: {}", e.getMessage(), e);
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
@@ -115,217 +137,234 @@ public class FlightSearchServiceTwo {
     private FlightSearchResDto processFlightData(JsonNode data, String origin, String requestedDestination, boolean isRoundTrip) {
         List<FlightInfo> results = new ArrayList<>();
         Map<String, String> carrierMap = getCarrierMap();
-        Set<String> uniqueFlights = new HashSet<>(); // 중복 항공편 제거
+        Set<String> uniqueFlights = new HashSet<>();
 
-        // 노선별 최소 소요 시간 (시간 단위)
         Map<String, Integer> minDurationMap = new HashMap<>();
-        minDurationMap.put("CDG-JFK", 7); // 7시간
-        minDurationMap.put("JFK-CDG", 6); // 6시간
-        minDurationMap.put("CDG-NCE", 1); // 1시간
-        minDurationMap.put("CDG-LHR", 1); // 1시간
-        minDurationMap.put("CDG-FRA", 1); // 1시간
-        minDurationMap.put("CDG-MAD", 2); // 2시간
-        minDurationMap.put("CDG-YUL", 7); // 7시간
-        minDurationMap.put("CDG-KEF", 3); // 3시간
-        minDurationMap.put("CDG-LIS", 2); // 2시간
-        minDurationMap.put("CDG-IST", 3); // 3시간
-        minDurationMap.put("CDG-BEG", 2); // 2시간
-        minDurationMap.put("CDG-CMN", 3); // 3시간
+        minDurationMap.put("CDG-JFK", 7);
+        minDurationMap.put("JFK-CDG", 7);
+        minDurationMap.put("LAX-JFK", 5);
+        minDurationMap.put("JFK-LAX", 5);
+        minDurationMap.put("CDG-NCE", 1);
+        minDurationMap.put("CDG-LHR", 1);
+        minDurationMap.put("LHR-CDG", 1);
+        minDurationMap.put("CDG-FRA", 1);
+        minDurationMap.put("CDG-MAD", 2);
+        minDurationMap.put("CDG-YUL", 7);
+        minDurationMap.put("CDG-KEF", 3);
+        minDurationMap.put("CDG-LIS", 2);
+        minDurationMap.put("CDG-IST", 3);
+        minDurationMap.put("CDG-BEG", 2);
+        minDurationMap.put("CDG-CMN", 3);
 
-        if (data != null && !data.isNull()) {
-            for (JsonNode flight : data) {
-                // 여정 검증
-                boolean validItineraries = true;
-                String carrierCode = null;
-                String flightKey = null;
+        for (JsonNode flight : data) {
+            log.info("항공편 {} 처리 시작", flight.get("id").asText());
+            boolean validItineraries = true;
+            String carrierCode = null;
+            String flightKey = null;
 
-                if (!flight.has("itineraries") || !flight.get("itineraries").isArray()) {
-                    log.warn("Skipping flight with invalid itineraries: {}", flight.toString());
-                    continue;
+            if (!flight.has("itineraries") || !flight.get("itineraries").isArray()) {
+                log.warn("항공편 {} 제외: 유효하지 않은 여정 구조", flight.get("id").asText());
+                continue;
+            }
+
+            JsonNode itineraries = flight.get("itineraries");
+            log.info("항공편 {} 여정 수: {}", flight.get("id").asText(), itineraries.size());
+            log.debug("항공편 {} 여정 구조: {}", flight.get("id").asText(), itineraries.toPrettyString());
+
+            // 출발 여정
+            if (itineraries.size() < 1 || !itineraries.get(0).has("segments") || itineraries.get(0).get("segments").size() == 0) {
+                log.warn("항공편 {} 제외: 유효하지 않은 출발 세그먼트", flight.get("id").asText());
+                continue;
+            }
+            JsonNode outbound = itineraries.get(0);
+            JsonNode segments = outbound.get("segments");
+            JsonNode firstSegment = segments.get(0);
+            JsonNode lastSegment = segments.get(segments.size() - 1);
+            String departureAirport = firstSegment.path("departure").path("iataCode").asText("");
+            String arrivalAirport = lastSegment.path("arrival").path("iataCode").asText("");
+            carrierCode = firstSegment.path("carrierCode").asText("Unknown");
+
+            if (!departureAirport.equals(origin) || !arrivalAirport.equals(requestedDestination)) {
+                log.warn("항공편 {} 제외: 출발 경로 불일치, 실제: {} -> {}, 예상: {} -> {}",
+                        flight.get("id").asText(), departureAirport, arrivalAirport, origin, requestedDestination);
+                validItineraries = false;
+            }
+
+            if (!carrierMap.containsKey(carrierCode) && !carrierCode.equals("Unknown")) {
+                log.info("항공편 {} 알 수 없는 항공사 코드 {}, 포함됨", flight.get("id").asText(), carrierCode);
+            }
+
+            String routeKey = departureAirport + "-" + arrivalAirport;
+            if (outbound.has("duration")) {
+                try {
+                    Duration duration = Duration.parse(outbound.get("duration").asText());
+                    int minHours = minDurationMap.getOrDefault(routeKey, 1);
+                    log.info("항공편 {} 출발 소요 시간: {} (최소: {}시간)", flight.get("id").asText(), duration, minHours);
+                    if (duration.toHours() < minHours) {
+                        log.warn("항공편 {} 제외: 출발 소요 시간 {} 미만, 경로 {}",
+                                flight.get("id").asText(), duration, routeKey);
+                        validItineraries = false;
+                    }
+                } catch (Exception e) {
+                    log.warn("항공편 {} 제외: 유효하지 않은 출발 소요 시간 형식: {}",
+                            flight.get("id").asText(), outbound.get("duration").asText());
+                    validItineraries = false;
                 }
+            }
 
-                JsonNode itineraries = flight.get("itineraries");
-                // 출발 여정 (CDG -> JFK)
-                if (itineraries.size() > 0) {
-                    JsonNode outbound = itineraries.get(0);
-                    if (!outbound.has("segments") || !outbound.get("segments").isArray() || outbound.get("segments").size() == 0) {
-                        log.warn("Skipping flight with invalid outbound segments: {}", flight.toString());
-                        continue;
-                    }
-                    JsonNode segment = outbound.get("segments").get(0);
-                    String departureAirport = segment.has("departure") && segment.get("departure").has("iataCode") ? segment.get("departure").get("iataCode").asText() : "";
-                    String arrivalAirport = segment.has("arrival") && segment.get("arrival").has("iataCode") ? segment.get("arrival").get("iataCode").asText() : "";
-                    carrierCode = segment.has("carrierCode") ? segment.get("carrierCode").asText() : "Unknown";
+            // 귀국 여정
+            JsonNode inbound = null;
+            if (isRoundTrip && itineraries.size() > 1) {
+                inbound = itineraries.get(1);
+                if (!inbound.has("segments") || inbound.get("segments").size() == 0) {
+                    log.warn("항공편 {} 제외: 유효하지 않은 귀국 세그먼트", flight.get("id").asText());
+                    validItineraries = false;
+                } else {
+                    JsonNode inboundSegments = inbound.get("segments");
+                    JsonNode inboundFirstSegment = inboundSegments.get(0);
+                    JsonNode inboundLastSegment = inboundSegments.get(inboundSegments.size() - 1);
+                    String returnDepartureAirport = inboundFirstSegment.path("departure").path("iataCode").asText("");
+                    String returnArrivalAirport = inboundLastSegment.path("arrival").path("iataCode").asText("");
+                    String inboundCarrierCode = inboundFirstSegment.path("carrierCode").asText("Unknown");
 
-                    if (!departureAirport.equals(origin) || !arrivalAirport.equals(requestedDestination)) {
-                        log.warn("Skipping flight with invalid outbound route: {} -> {}, expected: {} -> {}", departureAirport, arrivalAirport, origin, requestedDestination);
+                    if (!returnDepartureAirport.equals(requestedDestination) || !returnArrivalAirport.equals(origin)) {
+                        log.warn("항공편 {} 제외: 귀국 경로 불일치, 실제: {} -> {}, 예상: {} -> {}",
+                                flight.get("id").asText(), returnDepartureAirport, returnArrivalAirport, requestedDestination, origin);
                         validItineraries = false;
                     }
 
-                    // 항공사 코드 검증
-                    if (!carrierMap.containsKey(carrierCode) && !carrierCode.equals("Unknown")) {
-                        log.warn("Skipping flight with unknown carrier code: {}", carrierCode);
-                        validItineraries = false;
-                    }
-
-                    // 소요 시간 검증
-                    String routeKey = departureAirport + "-" + arrivalAirport;
-                    if (outbound.has("duration")) {
-                        try {
-                            Duration duration = Duration.parse(outbound.get("duration").asText());
-                            int minHours = minDurationMap.getOrDefault(routeKey, 1);
-                            if (duration.isNegative() || duration.isZero() || duration.toHours() < minHours) {
-                                log.warn("Skipping flight with invalid outbound duration: {} for route {}", duration, routeKey);
-                                validItineraries = false;
-                            }
-                        } catch (Exception e) {
-                            log.warn("Invalid outbound duration format: {}", outbound.get("duration").asText());
-                            validItineraries = false;
-                        }
-                    }
-                }
-
-                // 귀국 여정 (JFK -> CDG)
-                if (isRoundTrip && itineraries.size() > 1) {
-                    JsonNode inbound = itineraries.get(1);
-                    if (!inbound.has("segments") || !inbound.get("segments").isArray() || inbound.get("segments").size() == 0) {
-                        log.warn("Skipping flight with invalid inbound segments: {}", flight.toString());
-                        continue;
-                    }
-                    JsonNode segment = inbound.get("segments").get(0);
-                    String departureAirport = segment.has("departure") && segment.get("departure").has("iataCode") ? segment.get("departure").get("iataCode").asText() : "";
-                    String arrivalAirport = segment.has("arrival") && segment.get("arrival").has("iataCode") ? segment.get("arrival").get("iataCode").asText() : "";
-                    String inboundCarrierCode = segment.has("carrierCode") ? segment.get("carrierCode").asText() : "Unknown";
-
-                    if (!departureAirport.equals(requestedDestination) || !arrivalAirport.equals(origin)) {
-                        log.warn("Skipping flight with invalid inbound route: {} -> {}, expected: {} -> {}", departureAirport, arrivalAirport, requestedDestination, origin);
-                        validItineraries = false;
-                    }
-
-                    if (!carrierMap.containsKey(inboundCarrierCode) && !inboundCarrierCode.equals("Unknown")) {
-                        log.warn("Skipping flight with unknown inbound carrier code: {}", inboundCarrierCode);
-                        validItineraries = false;
-                    }
-
-                    String routeKey = departureAirport + "-" + arrivalAirport;
+                    String returnRouteKey = returnDepartureAirport + "-" + returnArrivalAirport;
                     if (inbound.has("duration")) {
                         try {
                             Duration duration = Duration.parse(inbound.get("duration").asText());
-                            int minHours = minDurationMap.getOrDefault(routeKey, 1);
-                            if (duration.isNegative() || duration.isZero() || duration.toHours() < minHours) {
-                                log.warn("Skipping flight with invalid inbound duration: {} for route {}", duration, routeKey);
+                            int minHours = minDurationMap.getOrDefault(returnRouteKey, 1);
+                            log.info("항공편 {} 귀국 소요 시간: {} (최소: {}시간)", flight.get("id").asText(), duration, minHours);
+                            if (duration.toHours() < minHours) {
+                                log.warn("항공편 {} 제외: 귀국 소요 시간 {} 미만, 경로 {}",
+                                        flight.get("id").asText(), duration, returnRouteKey);
                                 validItineraries = false;
                             }
                         } catch (Exception e) {
-                            log.warn("Invalid inbound duration format: {}", inbound.get("duration").asText());
+                            log.warn("항공편 {} 제외: 유효하지 않은 귀국 소요 시간 형식: {}",
+                                    flight.get("id").asText(), inbound.get("duration").asText());
                             validItineraries = false;
                         }
                     }
                 }
+            } else if (isRoundTrip) {
+                log.warn("항공편 {} 귀국 여정 누락: 여정 수 {}. API 응답 여정: {}",
+                        flight.get("id").asText(), itineraries.size(), itineraries.toPrettyString());
+                validItineraries = false;
+            }
 
-                if (!validItineraries) {
-                    continue;
-                }
+            if (!validItineraries) {
+                log.info("항공편 {} 제외: 유효하지 않은 여정", flight.get("id").asText());
+                continue;
+            }
 
-                // 중복 항공편 체크
-                String departureTime = "";
-                String arrivalTime = "";
-                String price = "";
-                JsonNode segment = itineraries.get(0).get("segments").get(0);
-                departureTime = segment.has("departure") && segment.get("departure").has("at") ? segment.get("departure").get("at").asText() : "";
-                arrivalTime = segment.has("arrival") && segment.get("arrival").has("at") ? segment.get("arrival").get("at").asText() : "";
-                price = flight.has("price") && flight.get("price").has("total") ? flight.get("price").get("total").asText() : "";
-                flightKey = carrierCode + "-" + departureTime + "-" + arrivalTime + "-" + price;
+            // 중복 체크
+            String departureTime = firstSegment.path("departure").path("at").asText("");
+            String arrivalTime = lastSegment.path("arrival").path("at").asText("");
+            String price = flight.path("price").path("total").asText("");
+            flightKey = carrierCode + "-" + departureTime + "-" + arrivalTime + "-" + price;
+            String returnDepartureTime = "";
+            String returnArrivalTime = "";
+            if (inbound != null && inbound.get("segments").size() > 0) {
+                JsonNode inboundSegments = inbound.get("segments");
+                JsonNode inboundFirstSegment = inboundSegments.get(0);
+                JsonNode inboundLastSegment = inboundSegments.get(inboundSegments.size() - 1);
+                returnDepartureTime = inboundFirstSegment.path("departure").path("at").asText("");
+                returnArrivalTime = inboundLastSegment.path("arrival").path("at").asText("");
+                flightKey += "-" + returnDepartureTime + "-" + returnArrivalTime;
+            }
+            if (!uniqueFlights.add(flightKey)) {
+                log.warn("항공편 {} 제외: 중복 항공편 {}", flight.get("id").asText(), flightKey);
+                continue;
+            }
 
-                if (!uniqueFlights.add(flightKey)) {
-                    log.warn("Skipping duplicate flight: {}", flightKey);
-                    continue;
-                }
+            // FlightInfo 생성
+            FlightInfo info = new FlightInfo();
+            info.setId(flight.get("id").asText());
+            info.setPrice(flight.path("price").path("total").asText(null));
+            info.setCurrency(flight.path("price").path("currency").asText("USD"));
+            info.setNumberOfBookableSeats(flight.path("numberOfBookableSeats").asInt(0));
+            info.setDuration(outbound.get("duration").asText(null));
+            info.setCarrierCode(carrierCode);
+            info.setCarrier(mapCarrierCodeToName(carrierCode));
+            info.setFlightNumber(firstSegment.path("number").asText("Unknown"));
+            info.setDepartureAirport(departureAirport);
+            info.setArrivalAirport(arrivalAirport);
+            info.setDepartureTime(departureTime);
+            info.setArrivalTime(arrivalTime);
+            info.setAircraft(mapAircraftCode(firstSegment.path("aircraft").path("code").asText("Unknown")));
 
-                // FlightInfo 생성
-                FlightInfo info = new FlightInfo();
-                info.setId(flight.has("id") ? flight.get("id").asText() : null);
+            // 귀국 여정 데이터 설정
+            if (inbound != null && inbound.get("segments").size() > 0) {
+                JsonNode inboundSegments = inbound.get("segments");
+                JsonNode inboundFirstSegment = inboundSegments.get(0);
+                JsonNode inboundLastSegment = inboundSegments.get(inboundSegments.size() - 1);
+                info.setReturnDuration(inbound.get("duration").asText(null));
+                info.setReturnCarrierCode(inboundFirstSegment.path("carrierCode").asText(carrierCode));
+                info.setReturnCarrier(mapCarrierCodeToName(inboundFirstSegment.path("carrierCode").asText(carrierCode)));
+                info.setReturnFlightNumber(inboundFirstSegment.path("number").asText("Unknown"));
+                info.setReturnDepartureAirport(inboundFirstSegment.path("departure").path("iataCode").asText(null));
+                info.setReturnArrivalAirport(inboundLastSegment.path("arrival").path("iataCode").asText(null));
+                info.setReturnDepartureTime(returnDepartureTime);
+                info.setReturnArrivalTime(returnArrivalTime);
+                log.info("항공편 {} 귀국 여정 설정: {} -> {}, 시간: {} ~ {}",
+                        flight.get("id").asText(), info.getReturnDepartureAirport(), info.getReturnArrivalAirport(),
+                        returnDepartureTime, returnArrivalTime);
+            }
 
-                if (flight.has("price") && !flight.get("price").isNull()) {
-                    JsonNode priceNode = flight.get("price");
-                    info.setPrice(priceNode.has("total") ? priceNode.get("total").asText() : null);
-                    info.setCurrency(priceNode.has("currency") ? priceNode.get("currency").asText() : "EUR");
-                }
-
-                info.setNumberOfBookableSeats(flight.has("numberOfBookableSeats") ? flight.get("numberOfBookableSeats").asInt() : 0);
-
-                JsonNode outbound = itineraries.get(0);
-                info.setDuration(outbound.has("duration") ? outbound.get("duration").asText() : null);
-
-                JsonNode segmentOutbound = outbound.get("segments").get(0);
-                info.setCarrierCode(carrierCode);
-                info.setCarrier(mapCarrierCodeToName(carrierCode));
-                info.setFlightNumber(segmentOutbound.has("number") ? segmentOutbound.get("number").asText() : "Unknown");
-
-                if (segmentOutbound.has("departure") && !segmentOutbound.get("departure").isNull()) {
-                    JsonNode departure = segmentOutbound.get("departure");
-                    info.setDepartureAirport(departure.has("iataCode") ? departure.get("iataCode").asText() : null);
-                    info.setDepartureTime(departure.has("at") ? departure.get("at").asText() : null);
-                }
-
-                if (segmentOutbound.has("arrival") && !segmentOutbound.get("arrival").isNull()) {
-                    JsonNode arrival = segmentOutbound.get("arrival");
-                    info.setArrivalAirport(arrival.has("iataCode") ? arrival.get("iataCode").asText() : null);
-                    info.setArrivalTime(arrival.has("at") ? arrival.get("at").asText() : null);
-                }
-
-                if (segmentOutbound.has("aircraft") && !segmentOutbound.get("aircraft").isNull() && segmentOutbound.get("aircraft").has("code")) {
-                    info.setAircraft(mapAircraftCode(segmentOutbound.get("aircraft").get("code").asText()));
-                } else {
-                    info.setAircraft("Unknown");
-                }
-
-                if (flight.has("travelerPricings") && !flight.get("travelerPricings").isNull() && flight.get("travelerPricings").isArray() && flight.get("travelerPricings").size() > 0) {
-                    JsonNode travelerPricing = flight.get("travelerPricings").get(0);
-                    if (travelerPricing.has("fareDetailsBySegment") && !travelerPricing.get("fareDetailsBySegment").isNull() && travelerPricing.get("fareDetailsBySegment").isArray()) {
-                        JsonNode fareDetails = travelerPricing.get("fareDetailsBySegment").get(0);
-                        String baggageInfo = "";
-                        if (fareDetails.has("includedCheckedBags") && !fareDetails.get("includedCheckedBags").isNull()) {
-                            JsonNode baggage = fareDetails.get("includedCheckedBags");
-                            baggageInfo = baggage.has("quantity") ? "Quantity: " + baggage.get("quantity").asInt() : "";
-                            if (baggage.has("weight") && !baggage.get("weight").isNull()) {
-                                baggageInfo += (baggageInfo.isEmpty() ? "" : ", ") + "Weight: " + baggage.get("weight").asInt() + "kg";
-                            }
+            // 수하물 정보
+            String baggageInfo = "Unknown";
+            if (flight.has("travelerPricings") && flight.get("travelerPricings").size() > 0) {
+                JsonNode travelerPricing = flight.get("travelerPricings").get(0);
+                if (travelerPricing.has("fareDetailsBySegment")) {
+                    JsonNode fareDetails = travelerPricing.get("fareDetailsBySegment").get(0);
+                    if (fareDetails.has("includedCheckedBags")) {
+                        JsonNode baggage = fareDetails.get("includedCheckedBags");
+                        baggageInfo = baggage.has("quantity") ? "Quantity: " + baggage.get("quantity").asInt() : "";
+                        if (baggage.has("weight")) {
+                            baggageInfo += (baggageInfo.isEmpty() ? "" : ", ") + "Weight: " + baggage.get("weight").asInt() + "kg";
                         }
-                        info.setCabinBaggage(baggageInfo.isEmpty() ? "Unknown" : baggageInfo);
-                    } else {
-                        info.setCabinBaggage("Unknown");
                     }
-                } else {
-                    info.setCabinBaggage("Unknown");
-                }
-
-                if (info.getPrice() != null && info.getDepartureTime() != null && info.getArrivalTime() != null) {
-                    results.add(info);
-                } else {
-                    log.warn("Skipping invalid flight data: {}", flight.toString());
                 }
             }
+            info.setCabinBaggage(baggageInfo);
+
+            if (info.getPrice() != null && info.getDepartureTime() != null && info.getArrivalTime() != null) {
+                results.add(info);
+                log.info("항공편 {} 추가: 출발 {}, 귀국 {}", flight.get("id").asText(),
+                        info.getDuration(), info.getReturnDuration());
+            } else {
+                log.warn("항공편 {} 제외: 필수 데이터 누락 (가격: {}, 출발: {}, 도착: {})",
+                        flight.get("id").asText(), info.getPrice(), info.getDepartureTime(), info.getArrivalTime());
+            }
+        }
+
+        if (isRoundTrip && results.stream().noneMatch(f -> f.getReturnDepartureTime() != null)) {
+            log.warn("왕복 요청이지만 귀국 여정 데이터 없음. 반환된 항공편 수: {}", results.size());
         }
 
         FlightSearchResDto resDto = new FlightSearchResDto();
         resDto.setSuccess(true);
         resDto.setFlights(results);
-        log.info("Returning {} flights for destination {}", results.size(), requestedDestination);
+        log.info("목적지 {}에 대해 {}개의 항공편 반환", requestedDestination, results.size());
         return resDto;
     }
 
     public Long saveFlight(FlightSearchReqDto reqDto, Long travelPlanId) {
-        log.info("Saving flight for request: {}, travelPlanId: {}", reqDto, travelPlanId);
+        log.info("항공편 저장 요청: {}, travelPlanId: {}", reqDto, travelPlanId);
         FlightSearchResDto result = searchFlights(reqDto);
         if (result.getFlights().isEmpty()) {
-            log.error("No flights found for request: {}", reqDto);
+            log.error("항공편 검색 결과 없음: {}", reqDto);
             throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
         }
 
         TravelPlan travelPlan = travelPlanRepository.findById(travelPlanId)
                 .orElseThrow(() -> {
-                    log.error("Travel plan not found: {}", travelPlanId);
+                    log.error("여행 계획 없음: {}", travelPlanId);
                     return new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
                 });
 
@@ -339,13 +378,13 @@ public class FlightSearchServiceTwo {
         travelFlight.setArrivalTime(LocalDateTime.parse(flightInfo.getArrivalTime()));
 
         travelFlight = travelFlightRepository.save(travelFlight);
-        log.info("Flight saved successfully with ID: {}", travelFlight.getId());
+        log.info("항공편 저장 성공, ID: {}", travelFlight.getId());
         return travelFlight.getId();
     }
 
     @CacheEvict(value = "flights", key = "#reqDto.origin + '-' + #reqDto.destination + '-' + #reqDto.departureDate")
     public void clearFlightCache(FlightSearchReqDto reqDto) {
-        log.info("Clearing flight cache for request: {}", reqDto);
+        log.info("항공편 캐시 삭제 요청: {}", reqDto);
     }
 
     private Map<String, String> getCarrierMap() {
@@ -362,6 +401,9 @@ public class FlightSearchServiceTwo {
         carrierMap.put("TK", "Turkish Airlines");
         carrierMap.put("JU", "Air Serbia");
         carrierMap.put("AT", "Royal Air Maroc");
+        carrierMap.put("6X", "West Air Sweden");
+        carrierMap.put("F9", "Frontier Airlines");
+        carrierMap.put("B6", "JetBlue Airways");
         return carrierMap;
     }
 
@@ -374,35 +416,44 @@ public class FlightSearchServiceTwo {
         aircraftMap.put("789", "Boeing 787-9");
         aircraftMap.put("380", "Airbus A380");
         aircraftMap.put("737", "Boeing 737");
+        aircraftMap.put("738", "Boeing 737-800");
         aircraftMap.put("320", "Airbus A320");
         aircraftMap.put("767", "Boeing 767");
+        aircraftMap.put("223", "Airbus A220-300");
+        aircraftMap.put("772", "Boeing 777-200");
+        aircraftMap.put("77W", "Boeing 777-300ER");
+        aircraftMap.put("359", "Airbus A350-900");
+        aircraftMap.put("343", "Airbus A340-300");
+        aircraftMap.put("744", "Boeing 747-400");
+        aircraftMap.put("32Q", "Airbus A321neo");
+        aircraftMap.put("32N", "Airbus A320neo");
         return aircraftMap.getOrDefault(aircraftCode, aircraftCode);
     }
 
     private void validateSearchRequest(FlightSearchReqDto reqDto) {
-        log.debug("Validating search request: {}", reqDto);
+        log.debug("검색 요청 검증: {}", reqDto);
         if (reqDto.getOrigin() == null || reqDto.getOrigin().isEmpty() ||
                 reqDto.getDestination() == null || reqDto.getDestination().isEmpty() ||
                 reqDto.getDepartureDate() == null || reqDto.getDepartureDate().isEmpty()) {
-            log.error("Invalid search request: missing required fields");
+            log.error("필수 필드 누락으로 검색 요청 유효하지 않음");
             throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
         }
         try {
             LocalDate departureDate = LocalDate.parse(reqDto.getDepartureDate());
             LocalDate maxDate = LocalDate.now().plusDays(330);
             if (departureDate.isAfter(maxDate)) {
-                log.error("Departure date {} is after max allowed date {}", departureDate, maxDate);
+                log.error("출발 날짜 {}가 최대 허용 날짜 {}를 초과함", departureDate, maxDate);
                 throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
             }
             if (reqDto.getReturnDate() != null && !reqDto.getReturnDate().isEmpty()) {
                 LocalDate returnDate = LocalDate.parse(reqDto.getReturnDate());
                 if (returnDate.isBefore(departureDate)) {
-                    log.error("Return date {} is before departure date {}", returnDate, departureDate);
+                    log.error("귀국 날짜 {}가 출발 날짜 {}보다 빠름", returnDate, departureDate);
                     throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
                 }
             }
         } catch (DateTimeParseException e) {
-            log.error("Invalid date format: departureDate={}, returnDate={}", reqDto.getDepartureDate(), reqDto.getReturnDate());
+            log.error("날짜 형식 오류: departureDate={}, returnDate={}", reqDto.getDepartureDate(), reqDto.getReturnDate());
             throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
         }
     }

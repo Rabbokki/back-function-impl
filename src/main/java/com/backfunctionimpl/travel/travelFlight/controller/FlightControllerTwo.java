@@ -11,10 +11,12 @@ import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchResDto;
 import com.backfunctionimpl.travel.travelFlight.dto.LocationDTO;
 import com.backfunctionimpl.travel.travelFlight.service.FlightSearchServiceTwo;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
@@ -29,40 +31,46 @@ import java.util.stream.Collectors;
 public class FlightControllerTwo {
     private final FlightSearchServiceTwo flightSearchService;
     private final AmadeusClient amadeusClient;
+    private final ObjectMapper objectMapper;
 
-    @PostMapping("/search")
+    @PostMapping(value = "/search", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<FlightSearchResDto> searchFlights(@RequestBody FlightSearchReqDto reqDto) {
-        log.info("Received flight search request: {}", reqDto);
-        try {
-            FlightSearchResDto resDto = flightSearchService.searchFlights(reqDto);
-            log.debug("Flight search response: {} flights found", resDto.getFlights().size());
-            return ResponseEntity.ok(resDto);
-        } catch (CustomException e) {
-            log.error("Flight search error: {}", e.getErrorCode().getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error during flight search: {}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+        log.info("항공편 검색 요청: {}", reqDto);
+
+        FlightSearchResDto resDto = flightSearchService.searchFlights(reqDto);
+
+        if (reqDto.isRealTime() &&
+                reqDto.getReturnDate() != null &&
+                !reqDto.getReturnDate().isEmpty()) {
+
+            boolean hasReturn = resDto.getFlights().stream()
+                    .anyMatch(f -> f.getReturnDepartureTime() != null && f.getReturnArrivalTime() != null);
+
+            if (!hasReturn) {
+                log.warn("귀국 여정 없음! 반환된 항공편 수: {}", resDto.getFlights().size());
+            }
         }
+
+        return ResponseEntity.ok(resDto);
     }
 
     @PostMapping("/save")
     public ResponseEntity<ResponseDto<Long>> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam Long travelPlanId) {
-        log.info("Saving flight for request: {}, travelPlanId: {}", reqDto, travelPlanId);
+        log.info("항공편 저장 요청: {}, travelPlanId: {}", reqDto, travelPlanId);
         try {
             Long flightId = flightSearchService.saveFlight(reqDto, travelPlanId);
-            log.info("Flight saved successfully with ID: {}", flightId);
+            log.info("항공편 저장 성공, ID: {}", flightId);
             return ResponseEntity.ok(ResponseDto.success(flightId));
         } catch (CustomException e) {
-            log.error("Flight save error: {}", e.getMessage());
+            log.error("항공편 저장 오류: {}", e.getMessage());
             return ResponseEntity.status(e.getErrorCode().getHttpStatus())
                     .body(ResponseDto.fail(e.getErrorCode().getCode(), e.getErrorCode().getMessage()));
         } catch (HttpMessageNotReadableException e) {
-            log.error("JSON parse error: {}", e.getMessage());
+            log.error("JSON 파싱 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ResponseDto.fail(ErrorCode.INVALID_JSON.getCode(), ErrorCode.INVALID_JSON.getMessage()));
         } catch (Exception e) {
-            log.error("Unexpected error during flight save: {}", e.getMessage());
+            log.error("항공편 저장 중 예기치 않은 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
                             ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
@@ -71,13 +79,13 @@ public class FlightControllerTwo {
 
     @PostMapping("/clear-cache")
     public ResponseEntity<ResponseDto<String>> clearFlightCache(@Valid @RequestBody FlightSearchReqDto reqDto) {
-        log.info("Clearing flight cache for request: {}", reqDto);
+        log.info("항공편 캐시 삭제 요청: {}", reqDto);
         try {
             flightSearchService.clearFlightCache(reqDto);
-            log.info("Flight cache cleared successfully for request: {}", reqDto);
-            return ResponseEntity.ok(ResponseDto.success("Cache cleared successfully"));
+            log.info("항공편 캐시 삭제 성공: {}", reqDto);
+            return ResponseEntity.ok(ResponseDto.success("캐시 삭제 완료"));
         } catch (Exception e) {
-            log.error("Error clearing flight cache: {}", e.getMessage());
+            log.error("항공편 캐시 삭제 오류: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
                             ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
@@ -86,7 +94,7 @@ public class FlightControllerTwo {
 
     @GetMapping("/autocomplete")
     public ResponseEntity<Map<String, Object>> autocomplete(@RequestParam String term) {
-        log.info("Autocomplete request for term: {}", term);
+        log.info("자동완성 요청, 검색어: {}", term);
         Map<String, Object> response = new HashMap<>();
         try {
             JsonNode locations = amadeusClient.searchLocations(term);
@@ -95,7 +103,7 @@ public class FlightControllerTwo {
             for (JsonNode location : locations) {
                 String iataCode = location.path("iataCode").asText();
                 if (seenIataCodes.contains(iataCode)) {
-                    log.debug("Skipping duplicate iataCode: {}", iataCode);
+                    log.debug("중복된 IATA 코드 제외: {}", iataCode);
                     continue;
                 }
                 seenIataCodes.add(iataCode);
@@ -110,7 +118,7 @@ public class FlightControllerTwo {
             response.put("error", null);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            log.error("Amadeus autocomplete error: {}", e.getMessage(), e);
+            log.error("Amadeus 자동완성 오류: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("data", null);
             response.put("error", Map.of("message", e.getMessage()));

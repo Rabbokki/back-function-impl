@@ -53,8 +53,8 @@ public enum ErrorCode {
     INVALID_JSON(HttpStatus.BAD_REQUEST.value(), "F005", "유효하지 않은 JSON 형식입니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST.value(),"F006" ,"Use a 3-letter IATA code or supported city name (e.g., 서울, 도쿄)." ),
     REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_003", "Failed to connect to Redis server"),
-    REDIS_SERIALIZATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_004", "Failed to serialize object for Redis")
-    ;
+    REDIS_SERIALIZATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_004", "Failed to serialize object for Redis"),
+    NO_FLIGHT_FOUND(HttpStatus.NOT_FOUND.value(),"F007" ,"왕복 항공편 데이터를 찾을 수 없습니다");
 
     private final int httpStatus;
     private final String code;
