@@ -18,7 +18,6 @@ import java.util.List;
 @Table(name = "account")
 @Getter
 @Setter
-@ToString(exclude = "posts")
 @NoArgsConstructor
 public class Account extends BaseEntity{
 

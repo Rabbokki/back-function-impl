@@ -1,15 +1,19 @@
 package com.backfunctionimpl.comment.service;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.comment.dto.CommentDto;
 import com.backfunctionimpl.comment.dto.CommentReqDto;
 import com.backfunctionimpl.comment.entity.Comment;
 import com.backfunctionimpl.comment.repository.CommentRepository;
 import com.backfunctionimpl.global.dto.ResponseDto;
+import com.backfunctionimpl.global.error.CustomException;
+import com.backfunctionimpl.global.error.ErrorCode;
 import com.backfunctionimpl.post.entity.Post;
 import com.backfunctionimpl.post.repository.PostRepository;
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,9 +26,8 @@ public class CommentService {
     // 댓글 생성
     @Transactional
     public ResponseDto<?> insertComment(CommentReqDto dto, Long postId, Account currentAccount) {
-        try {
             Post post = postRepository.findById(postId)
-                    .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CANNOT_DELETE_NOT_EXIST_POST));
 
             Comment comment = new Comment(dto.getContent(), post, currentAccount);
             post.getCommentList().add(comment);  // 게시글에 댓글 추가
@@ -32,13 +35,16 @@ public class CommentService {
 
             // 댓글 수 갱신
             post.commentUpdate(post.getCommentList().size());
+            CommentDto commentDto = new CommentDto(
+                    comment.getId(),
+                    comment.getAccount().getEmail(),
+                    comment.getContent(),
+                    comment.getAccount().getNickname(),
+                    comment.getLikeSize(),
+                    comment.getAccount().getImgUrl()
+            );
+            return ResponseDto.success(commentDto);
 
-            return ResponseDto.success("댓글 작성 완료");
-        } catch (Exception e) {
-            System.out.println("Error inserting comment: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
     }
 
     // 댓글 조회 (전체)
@@ -85,5 +91,19 @@ public class CommentService {
             throw new RuntimeException("댓글 작성자가 아닙니다.");
         }
         return ResponseDto.success("댓글 삭제 완료");
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentDto> getCommentsByPostId(Long postId) {
+        List<Comment> comments = commentRepository.findByPostId(postId);
+        return comments.stream().map(comment -> CommentDto.builder()
+                .id(comment.getId())
+                .email(comment.getAccount().getEmail())
+                .content(comment.getContent())
+                .author(comment.getAccount().getNickname())
+                .likeCount(comment.getLikeSize())
+                .authorImage(comment.getAccount().getImgUrl())
+                .build()
+        ).toList();
     }
 }
