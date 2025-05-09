@@ -59,6 +59,8 @@ public class Account extends BaseEntity {
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 

@@ -10,6 +10,7 @@ import com.backfunctionimpl.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -59,6 +60,8 @@ public class PostService {
         return new PostDto(
                 saved.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getNickname(),
+                post.getAccount().getImgUrl(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(Image::getImageUrl).toList(),
@@ -79,6 +82,8 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getNickname(),
+                        post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -107,6 +112,8 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getNickname(),
+                        post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -124,6 +131,7 @@ public class PostService {
 
 
     // 게시글 수정
+    @Transactional
     public ResponseEntity<String> updateByPost(Long id, List<MultipartFile> imgs, PostDto dto, Account account) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
@@ -135,18 +143,41 @@ public class PostService {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
 
-        post.getTags().clear();
-        if (dto.getTags() != null) {
-            List<PostTag> tags = dto.getTags().stream()
-                    .map(tag -> PostTag.builder()
-                            .tagName(tag)
-                            .post(post)
-                            .build())
-                    .toList();
-            post.setTags(tags);
+        System.out.println("before clearing: " + post.getImages());
+        post.getImages().clear(); // <-- important: triggers orphan removal
+        System.out.println("after clearing: " + post.getImages());
+
+        List<String> uploadedUrls = new ArrayList<>();
+        if (imgs != null && !imgs.isEmpty()) {
+            for (MultipartFile img : imgs) {
+                System.out.println("8=========D~~ We are now about to replace images ~~C============8");
+                String uploadedUrl = s3Service.uploadFile(img);
+                System.out.println("Uploaded to: " + uploadedUrl); // confirm URL
+                uploadedUrls.add(uploadedUrl);
+            }
         }
 
-        postRepository.save(post);
+        List<Image> images = uploadedUrls.stream()
+                .map(url -> Image.builder()
+                        .imageUrl(url)
+                        .post(post)
+                        .build())
+                .toList();
+
+        post.getImages().addAll(images); // ✅ fix: don't use setImages()
+
+        post.getTags().clear();
+        if (dto.getTags() != null) {
+            for (String tagName : dto.getTags()) {
+                PostTag tag = PostTag.builder()
+                        .tagName(tagName)
+                        .post(post)
+                        .build();
+                post.getTags().add(tag);
+            }
+        }
+
+        postRepository.save(post); // optional in @Transactional, but fine
         return ResponseEntity.ok("게시글이 성공적으로 수정되었습니다.");
     }
 
@@ -171,6 +202,8 @@ public class PostService {
         return new PostDto(
                 post.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getNickname(),
+                post.getAccount().getImgUrl(),
                 post.getTitle(),
                 post.getContent(),
                 post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -192,6 +225,18 @@ public class PostService {
 
         // 좋아요 수 증가
         post.setLikeCount(post.getLikeCount() + 1);
+
+        // 게시글 저장
+        postRepository.save(post);
+    }
+
+    // 뷰 처리
+    public void addView(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        // 뷰 수 증가
+        post.setViews(post.getViews() + 1);
 
         // 게시글 저장
         postRepository.save(post);

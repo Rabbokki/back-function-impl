@@ -22,17 +22,23 @@ public class CommentService {
     // 댓글 생성
     @Transactional
     public ResponseDto<?> insertComment(CommentReqDto dto, Long postId, Account currentAccount) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+        try {
+            Post post = postRepository.findById(postId)
+                    .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
 
-        Comment comment = new Comment(dto.getContent(), post, currentAccount);
-        post.getCommentList().add(comment);  // 게시글에 댓글 추가
-        commentRepository.save(comment);
+            Comment comment = new Comment(dto.getContent(), post, currentAccount);
+            post.getCommentList().add(comment);  // 게시글에 댓글 추가
+            commentRepository.save(comment);
 
-        // 댓글 수 갱신
-        post.commentUpdate(post.getCommentList().size());
+            // 댓글 수 갱신
+            post.commentUpdate(post.getCommentList().size());
 
-        return ResponseDto.success("댓글 작성 완료");
+            return ResponseDto.success("댓글 작성 완료");
+        } catch (Exception e) {
+            System.out.println("Error inserting comment: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     // 댓글 조회 (전체)

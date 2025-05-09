@@ -48,7 +48,7 @@ public class PostController {
     @PatchMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updatePost(
             @PathVariable("id") Long id,
-            @RequestParam(value = "postImg", required = false) List<MultipartFile> imgs,
+            @RequestPart(value = "postImg", required = false) List<MultipartFile> imgs,
             @RequestPart(value = "dto") PostDto dto,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
@@ -88,6 +88,13 @@ public class PostController {
     @PostMapping("/{id}/like")
     public ResponseEntity<?> likePost(@PathVariable("id") Long id, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         postService.likePost(id, userDetails.getAccount());
+        return ResponseEntity.ok(Map.of("message", "좋아요 처리 완료"));
+    }
+
+    // 뷰 처리
+    @PutMapping("/{id}/view")
+    public ResponseEntity<?> viewPost(@PathVariable("id") Long id) {
+        postService.addView(id);
         return ResponseEntity.ok(Map.of("message", "좋아요 처리 완료"));
     }
 }

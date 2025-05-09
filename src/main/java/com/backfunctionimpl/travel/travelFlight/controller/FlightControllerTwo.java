@@ -6,6 +6,7 @@ import com.backfunctionimpl.global.dto.ResponseDto;
 import com.backfunctionimpl.global.error.CustomException;
 import com.backfunctionimpl.global.error.ErrorCode;
 import com.backfunctionimpl.travel.config.AmadeusClient;
+import com.backfunctionimpl.travel.travelFlight.dto.FlightInfo;
 import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchReqDto;
 import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchResDto;
 import com.backfunctionimpl.travel.travelFlight.dto.LocationDTO;
@@ -36,31 +37,40 @@ public class FlightControllerTwo {
     @PostMapping(value = "/search", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<FlightSearchResDto> searchFlights(@RequestBody FlightSearchReqDto reqDto) {
         log.info("항공편 검색 요청: {}", reqDto);
+        try {
+            FlightSearchResDto resDto = flightSearchService.searchFlights(reqDto);
 
-        FlightSearchResDto resDto = flightSearchService.searchFlights(reqDto);
-
-        if (reqDto.isRealTime() &&
-                reqDto.getReturnDate() != null &&
-                !reqDto.getReturnDate().isEmpty()) {
-
-            boolean hasReturn = resDto.getFlights().stream()
-                    .anyMatch(f -> f.getReturnDepartureTime() != null && f.getReturnArrivalTime() != null);
-
-            if (!hasReturn) {
-                log.warn("귀국 여정 없음! 반환된 항공편 수: {}", resDto.getFlights().size());
+            if (reqDto.isRealTime() &&
+                    reqDto.getReturnDate() != null &&
+                    !reqDto.getReturnDate().isEmpty()) {
+                boolean hasReturn = resDto.getFlights().stream()
+                        .anyMatch(f -> f.getReturnDepartureTime() != null && f.getReturnArrivalTime() != null);
+                if (!hasReturn) {
+                    log.warn("귀국 여정 없음! 반환된 항공편 수: {}", resDto.getFlights().size());
+                }
             }
-        }
 
-        return ResponseEntity.ok(resDto);
+            return ResponseEntity.ok(resDto);
+        } catch (CustomException e) {
+            log.error("항공편 검색 오류: {}", e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(new FlightSearchResDto(false, List.of()));
+        } catch (Exception e) {
+            log.error("항공편 검색 중 예기치 않은 오류: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new FlightSearchResDto(false, List.of()));
+        }
     }
+
+
 
     @PostMapping("/save")
     public ResponseEntity<ResponseDto<Long>> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam Long travelPlanId) {
         log.info("항공편 저장 요청: {}, travelPlanId: {}", reqDto, travelPlanId);
         try {
-            Long flightId = flightSearchService.saveFlight(reqDto, travelPlanId);
-            log.info("항공편 저장 성공, ID: {}", flightId);
-            return ResponseEntity.ok(ResponseDto.success(flightId));
+            Long travelFlightId = flightSearchService.saveFlight(reqDto, travelPlanId);
+            log.info("항공편 저장 성공, TravelFlight ID: {}", travelFlightId);
+            return ResponseEntity.ok(ResponseDto.success(travelFlightId));
         } catch (CustomException e) {
             log.error("항공편 저장 오류: {}", e.getMessage());
             return ResponseEntity.status(e.getErrorCode().getHttpStatus())
@@ -123,6 +133,54 @@ public class FlightControllerTwo {
             response.put("data", null);
             response.put("error", Map.of("message", e.getMessage()));
             return ResponseEntity.badRequest().body(response);
+        }
+    }
+    @GetMapping("/detail/{flightId}")
+    public ResponseEntity<ResponseDto<FlightInfo>> getFlightDetail(@PathVariable String flightId) {
+        log.info("항공편 상세 조회 요청: flightId = {}", flightId);
+        try {
+            FlightInfo flightInfo = flightSearchService.getFlightDetail(flightId);
+            if (flightInfo == null) {
+                log.warn("항공편을 찾을 수 없음: flightId = {}", flightId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ResponseDto.fail(ErrorCode.FLIGHT_NOT_FOUND.getCode(),
+                                ErrorCode.FLIGHT_NOT_FOUND.getMessage()));
+            }
+            log.info("항공편 상세 조회 성공: flightId = {}", flightId);
+            return ResponseEntity.ok(ResponseDto.success(flightInfo));
+        } catch (CustomException e) {
+            log.error("항공편 상세 조회 오류: {}", e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(ResponseDto.fail(e.getErrorCode().getCode(), e.getErrorCode().getMessage()));
+        } catch (Exception e) {
+            log.error("항공편 상세 조회 중 예기치 않은 오류: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
+        }
+    }
+    @GetMapping("/detail/by-travel-flight/{travelFlightId}")
+    public ResponseEntity<ResponseDto<FlightInfo>> getFlightDetailByTravelFlightId(@PathVariable Long travelFlightId) {
+        log.info("항공편 상세 조회 요청 (TravelFlight ID): travelFlightId = {}", travelFlightId);
+        try {
+            FlightInfo flightInfo = flightSearchService.getFlightDetailByTravelFlightId(travelFlightId);
+            if (flightInfo == null) {
+                log.warn("항공편을 찾을 수 없음: travelFlightId = {}", travelFlightId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ResponseDto.fail(ErrorCode.FLIGHT_NOT_FOUND.getCode(),
+                                ErrorCode.FLIGHT_NOT_FOUND.getMessage()));
+            }
+            log.info("항공편 상세 조회 성공: travelFlightId = {}", travelFlightId);
+            return ResponseEntity.ok(ResponseDto.success(flightInfo));
+        } catch (CustomException e) {
+            log.error("항공편 상세 조회 오류: {}", e.getMessage());
+            return ResponseEntity.status(e.getErrorCode().getHttpStatus())
+                    .body(ResponseDto.fail(e.getErrorCode().getCode(), e.getErrorCode().getMessage()));
+        } catch (Exception e) {
+            log.error("항공편 상세 조회 중 예기치 않은 오류: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
+                            ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
         }
     }
 }
