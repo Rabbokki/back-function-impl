@@ -54,7 +54,10 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST.value(),"F006" ,"Use a 3-letter IATA code or supported city name (e.g., 서울, 도쿄)." ),
     REDIS_CONNECTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_003", "Failed to connect to Redis server"),
     REDIS_SERIALIZATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR.value(), "SYS_004", "Failed to serialize object for Redis"),
-    NO_FLIGHT_FOUND(HttpStatus.NOT_FOUND.value(),"F007" ,"왕복 항공편 데이터를 찾을 수 없습니다");
+    NO_FLIGHT_FOUND(HttpStatus.NOT_FOUND.value(),"F007" ,"왕복 항공편 데이터를 찾을 수 없습니다"),
+    FLIGHT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "F008", "항공편을 찾을 수 없습니다"),
+
+    ;
 
     private final int httpStatus;
     private final String code;

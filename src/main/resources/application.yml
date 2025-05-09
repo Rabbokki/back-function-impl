@@ -2,6 +2,7 @@ logging:
   level:
     com.amadeus: TRACE
     com.backfunctionimpl.travel.config.AmadeusClient: TRACE
+    com.backfunctionimpl.travel.travelFlight.service: DEBUG
     root: INFO
     org.springframework: DEBUG
     org.springframework.core.env: TRACE

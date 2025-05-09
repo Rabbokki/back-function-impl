@@ -10,6 +10,7 @@ public class FlightInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
+    private Long travelFlightId; // 추가
     private String departureAirport;
     private String arrivalAirport;
     private String departureTime;

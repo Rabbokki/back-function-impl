@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -133,41 +134,45 @@ public class AmadeusClient {
         } catch (Exception e) {
             log.error("Error during location search for keyword: {}. Cause: {}, Message: {}, StackTrace: {}",
                     processedKeyword, e.getCause(), e.getMessage(), e.getStackTrace(), e);
-            try {
-                fetchAccessToken();
-                JsonNode response = webClient.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/v1/reference-data/locations")
-                                .queryParam("subType", "AIRPORT,CITY")
-                                .queryParam("keyword", processedKeyword)
-                                .build())
-                        .header("Authorization", "Bearer " + getAccessToken())
-                        .retrieve()
-                        .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), clientResponse -> {
-                            return clientResponse.bodyToMono(JsonNode.class)
-                                    .map(errorBody -> {
-                                        String error = errorBody.path("error").asText("Unknown error");
-                                        String description = errorBody.path("error_description").asText("No description");
-                                        log.error("Retry location search error: status={}, error={}, description={}",
-                                                clientResponse.statusCode(), error, description);
-                                        throw new RuntimeException("Amadeus API retry error: " + description);
-                                    });
-                        })
-                        .bodyToMono(JsonNode.class)
-                        .block();
+            // 재시도 로직
+            for (int i = 0; i < 2; i++) {
+                try {
+                    log.info("Retrying location search, attempt {}", i + 1);
+                    fetchAccessToken();
+                    JsonNode response = webClient.get()
+                            .uri(uriBuilder -> uriBuilder
+                                    .path("/v1/reference-data/locations")
+                                    .queryParam("subType", "AIRPORT,CITY")
+                                    .queryParam("keyword", processedKeyword)
+                                    .build())
+                            .header("Authorization", "Bearer " + getAccessToken())
+                            .retrieve()
+                            .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), clientResponse -> {
+                                return clientResponse.bodyToMono(JsonNode.class)
+                                        .map(errorBody -> {
+                                            String error = errorBody.path("error").asText("Unknown error");
+                                            String description = errorBody.path("error_description").asText("No description");
+                                            log.error("Retry location search error: status={}, error={}, description={}",
+                                                    clientResponse.statusCode(), error, description);
+                                            throw new RuntimeException("Amadeus API retry error: " + description);
+                                        });
+                            })
+                            .bodyToMono(JsonNode.class)
+                            .block();
 
-                if (response != null && response.has("data")) {
-                    log.debug("Retry successful. Found {} locations for keyword: {}", response.get("data").size(), processedKeyword);
-                    return response.get("data");
-                } else {
-                    log.error("Invalid retry response from Amadeus locations endpoint: {}", response);
-                    throw new RuntimeException("Invalid retry locations response");
+                    if (response != null && response.has("data")) {
+                        log.debug("Retry successful. Found {} locations for keyword: {}", response.get("data").size(), processedKeyword);
+                        return response.get("data");
+                    } else {
+                        log.error("Invalid retry response from Amadeus locations endpoint: {}", response);
+                        throw new RuntimeException("Invalid retry locations response");
+                    }
+                } catch (Exception retryEx) {
+                    log.error("Retry {} failed for location search. Cause: {}, Message: {}, StackTrace: {}",
+                            i + 1, retryEx.getCause(), retryEx.getMessage(), retryEx.getStackTrace(), retryEx);
                 }
-            } catch (Exception retryEx) {
-                log.error("Retry failed for location search. Cause: {}, Message: {}, StackTrace: {}",
-                        retryEx.getCause(), retryEx.getMessage(), retryEx.getStackTrace(), retryEx);
-                throw new RuntimeException("Failed to connect to Amadeus API after retry: " + retryEx.getMessage());
             }
+            throw new RuntimeException("Failed to connect to Amadeus API after retries: " + e.getMessage());
         }
     }
 
@@ -194,6 +199,7 @@ public class AmadeusClient {
                                 });
                     })
                     .bodyToMono(JsonNode.class)
+                    .timeout(Duration.ofSeconds(10)) // 타임아웃 추가
                     .block();
 
             if (response != null && response.has("access_token")) {
