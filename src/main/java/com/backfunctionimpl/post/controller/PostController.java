@@ -90,4 +90,11 @@ public class PostController {
         postService.likePost(id, userDetails.getAccount());
         return ResponseEntity.ok(Map.of("message", "좋아요 처리 완료"));
     }
+
+    // 뷰 처리
+    @PutMapping("/{id}/view")
+    public ResponseEntity<?> viewPost(@PathVariable("id") Long id) {
+        postService.addView(id);
+        return ResponseEntity.ok(Map.of("message", "좋아요 처리 완료"));
+    }
 }

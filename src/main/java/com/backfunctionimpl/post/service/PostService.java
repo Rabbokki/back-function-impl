@@ -60,6 +60,8 @@ public class PostService {
         return new PostDto(
                 saved.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getNickname(),
+                post.getAccount().getImgUrl(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(Image::getImageUrl).toList(),
@@ -80,6 +82,8 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getNickname(),
+                        post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -108,6 +112,8 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getNickname(),
+                        post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -138,12 +144,15 @@ public class PostService {
         post.setContent(dto.getContent());
 
         System.out.println("before clearing: " + post.getImages());
-        post.getImages().clear();
+        post.getImages().clear(); // <-- important: triggers orphan removal
         System.out.println("after clearing: " + post.getImages());
+
         List<String> uploadedUrls = new ArrayList<>();
         if (imgs != null && !imgs.isEmpty()) {
             for (MultipartFile img : imgs) {
+                System.out.println("8=========D~~ We are now about to replace images ~~C============8");
                 String uploadedUrl = s3Service.uploadFile(img);
+                System.out.println("Uploaded to: " + uploadedUrl); // confirm URL
                 uploadedUrls.add(uploadedUrl);
             }
         }
@@ -154,7 +163,8 @@ public class PostService {
                         .post(post)
                         .build())
                 .toList();
-        post.setImages(images);
+
+        post.getImages().addAll(images); // ✅ fix: don't use setImages()
 
         post.getTags().clear();
         if (dto.getTags() != null) {
@@ -167,8 +177,7 @@ public class PostService {
             }
         }
 
-        System.out.println("8=========D~~ Post before saving: {} ~~C============8" + post.toString());
-        postRepository.save(post);
+        postRepository.save(post); // optional in @Transactional, but fine
         return ResponseEntity.ok("게시글이 성공적으로 수정되었습니다.");
     }
 
@@ -193,6 +202,8 @@ public class PostService {
         return new PostDto(
                 post.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getNickname(),
+                post.getAccount().getImgUrl(),
                 post.getTitle(),
                 post.getContent(),
                 post.getImages().stream().map(Image::getImageUrl).toList(),
@@ -214,6 +225,18 @@ public class PostService {
 
         // 좋아요 수 증가
         post.setLikeCount(post.getLikeCount() + 1);
+
+        // 게시글 저장
+        postRepository.save(post);
+    }
+
+    // 뷰 처리
+    public void addView(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        // 뷰 수 증가
+        post.setViews(post.getViews() + 1);
 
         // 게시글 저장
         postRepository.save(post);

@@ -15,6 +15,8 @@ import java.util.List;
 public class PostDto {
     private Long id;
     private Long userId;
+    private String userName;
+    private String userImgUrl;
     private String title;
     private String content;
     private List<String> imgUrl;
@@ -28,10 +30,12 @@ public class PostDto {
     private List<String> tags;
 
     // 모든 필드를 받는 생성자 추가
-    public PostDto(Long id, Long userId, String title, String content, List<String> imgUrl, Category category,
+    public PostDto(Long id, Long userId, String userName, String userImgUrl, String title, String content, List<String> imgUrl, Category category,
                    int views, int commentsCount, int likeCount, int reviewSize, int totalRating, float averageRating, List<String> tags) {
         this.id = id;
         this.userId = userId;
+        this.userName = userName;
+        this.userImgUrl = userImgUrl;
         this.title = title;
         this.content = content;
         this.imgUrl = imgUrl;
