@@ -64,7 +64,7 @@ public class Account extends BaseEntity{
     @Enumerated(EnumType.STRING)
     private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
     private Integer levelExp;   // 경험치 퍼센트
-    @OneToMany(fetch = FetchType.LAZY,mappedBy = "account", cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 
 

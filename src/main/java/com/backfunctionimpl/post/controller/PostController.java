@@ -48,7 +48,7 @@ public class PostController {
     @PatchMapping(value = "/update/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updatePost(
             @PathVariable("id") Long id,
-            @RequestParam(value = "postImg", required = false) List<MultipartFile> imgs,
+            @RequestPart(value = "postImg", required = false) List<MultipartFile> imgs,
             @RequestPart(value = "dto") PostDto dto,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
