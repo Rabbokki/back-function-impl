@@ -10,6 +10,7 @@ import com.backfunctionimpl.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -124,6 +125,7 @@ public class PostService {
 
 
     // 게시글 수정
+    @Transactional
     public ResponseEntity<String> updateByPost(Long id, List<MultipartFile> imgs, PostDto dto, Account account) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
@@ -135,17 +137,37 @@ public class PostService {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
 
-        post.getTags().clear();
-        if (dto.getTags() != null) {
-            List<PostTag> tags = dto.getTags().stream()
-                    .map(tag -> PostTag.builder()
-                            .tagName(tag)
-                            .post(post)
-                            .build())
-                    .toList();
-            post.setTags(tags);
+        System.out.println("before clearing: " + post.getImages());
+        post.getImages().clear();
+        System.out.println("after clearing: " + post.getImages());
+        List<String> uploadedUrls = new ArrayList<>();
+        if (imgs != null && !imgs.isEmpty()) {
+            for (MultipartFile img : imgs) {
+                String uploadedUrl = s3Service.uploadFile(img);
+                uploadedUrls.add(uploadedUrl);
+            }
         }
 
+        List<Image> images = uploadedUrls.stream()
+                .map(url -> Image.builder()
+                        .imageUrl(url)
+                        .post(post)
+                        .build())
+                .toList();
+        post.setImages(images);
+
+        post.getTags().clear();
+        if (dto.getTags() != null) {
+            for (String tagName : dto.getTags()) {
+                PostTag tag = PostTag.builder()
+                        .tagName(tagName)
+                        .post(post)
+                        .build();
+                post.getTags().add(tag);
+            }
+        }
+
+        System.out.println("8=========D~~ Post before saving: {} ~~C============8" + post.toString());
         postRepository.save(post);
         return ResponseEntity.ok("게시글이 성공적으로 수정되었습니다.");
     }

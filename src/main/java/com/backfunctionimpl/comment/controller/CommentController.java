@@ -23,6 +23,7 @@ public class CommentController {
     public ResponseDto<?> createComment(@RequestBody CommentReqDto dto,
                                         @PathVariable Long postId,
                                         @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        System.out.println("////////From CommentController, CommentReqDto:" + dto);
         return commentService.insertComment(dto, postId, userDetails.getAccount());
     }
 
