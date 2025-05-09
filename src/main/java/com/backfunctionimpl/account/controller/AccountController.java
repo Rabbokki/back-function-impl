@@ -74,4 +74,12 @@ public class AccountController {
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
     }
 
+    @DeleteMapping
+    public ResponseEntity<String> deleteAccount(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        accountService.deleteAccount(userDetails);
+        return ResponseEntity.ok("계정이 성공적으로 삭제되었습니다.");
+    }
+
+
+
 }

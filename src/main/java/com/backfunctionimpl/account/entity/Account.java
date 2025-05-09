@@ -1,8 +1,6 @@
 package com.backfunctionimpl.account.entity;
 
-
 import com.backfunctionimpl.post.entity.Post;
-
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -20,7 +18,7 @@ import java.util.List;
 @Setter
 @ToString(exclude = "posts")
 @NoArgsConstructor
-public class Account extends BaseEntity{
+public class Account extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,23 +30,25 @@ public class Account extends BaseEntity{
 
     @Column(nullable = false)
     private String name;
+
     @Column(nullable = false)
     private String nickname;
+
     @Column(nullable = false)
     private LocalDate birthday;
+
     @Column(nullable = false)
     private String password;
-    @Column(nullable = true)
+
     private String provider;
-    @Column(nullable = true)
     private String providerId;
 
     private String bio;
+
     @Column(nullable = false)
     private String gender;
+
     private String imgUrl;
-
-
 
     @Column(nullable = false)
     private boolean agreeTerms;
@@ -56,33 +56,32 @@ public class Account extends BaseEntity{
     @Column(nullable = false)
     private boolean agreeMarketing;
 
-
-    @OneToMany(mappedBy = "account",
-            cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
 
-    @Enumerated(EnumType.STRING)
-    private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
-    private Integer levelExp;   // 경험치 퍼센트
-    @OneToMany(fetch = FetchType.LAZY,mappedBy = "account", cascade = CascadeType.ALL)
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 
+    //  경험치
+    @Column(nullable = false)
+    private int levelExp = 0;  // 기본 0
 
-    //일반 회원
-//    public Account(AccountReqDto accountReqDto) {
-//        this.email = accountReqDto.getEmail();
-//        this.password = accountReqDto.getPassword();
-//        this.nickname = accountReqDto.getNickname();
-//        this.birthday = accountReqDto.getBirthday();
-//        this.imgUrl = accountReqDto.getImgUrl();
-//    }
+    //  현재 레벨 계산
+    public TravelLevel getLevel() {
+        return TravelLevel.findByExp(this.levelExp);
+    }
 
-    //google 로그인
+    //  경험치 추가 헬퍼
+    public void addExp(int exp) {
+        this.levelExp += exp;
+    }
+
+    // 구글 로그인 생성자
     public Account(String email, String nickname, String provider, String providerId) {
         this.email = email;
         this.nickname = nickname;
         this.provider = provider;
         this.providerId = providerId;
-        this.password = "SOCIAL_LOGIN"; //소셜 로그인용 기본값
+        this.password = "SOCIAL_LOGIN";
     }
 }

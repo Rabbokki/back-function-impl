@@ -11,6 +11,7 @@ import com.backfunctionimpl.global.security.jwt.util.JwtUtil;
 import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import com.backfunctionimpl.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountService {
@@ -63,7 +65,6 @@ public class AccountService {
         account.setProviderId(null);
 
         // TravelLevel 기본값 세팅
-        account.setLevel(TravelLevel.BEGINNER);
         account.setLevelExp(0);
 
         // 약관 동의 여부 저장
@@ -178,18 +179,45 @@ public class AccountService {
 
     @Transactional
     public void changePassword(UserDetailsImpl userDetails, AccountPasswordChangeRequestDto dto) {
-        Account account = accountRepository.findByEmail(userDetails.getAccount().getEmail())
-                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+        try {
+            if (userDetails == null || userDetails.getAccount() == null) {
+                throw new IllegalStateException("인증 정보가 없습니다.");
+            }
 
-        // 현재 비밀번호 확인
-        if (!passwordEncoder.matches(dto.getCurrentPassword(), account.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            Account account = accountRepository.findByEmail(userDetails.getAccount().getEmail())
+                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+
+            if (!passwordEncoder.matches(dto.getCurrentPassword(), account.getPassword())) {
+                throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            }
+
+            account.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+            accountRepository.save(account);
+        } catch (Exception e) {
+            log.error("비밀번호 변경 실패", e);
+            throw e; // 에러 메시지를 프론트로 보내기 위해 그대로 던짐
         }
+    }
 
-        // 새 비밀번호로 변경
-        account.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+    //계정 삭제
+    @Transactional
+    public void deleteAccount(UserDetailsImpl userDetails) {
+        Account account = accountRepository.findById(userDetails.getAccount().getId())
+                .orElseThrow(() -> new IllegalArgumentException("계정을 찾을 수 없습니다."));
+
+        // 진짜로 삭제
+        accountRepository.delete(account);
+    }
+
+    @Transactional
+    public void addExperience(UserDetailsImpl userDetails, int exp) {
+        Account account = accountRepository.findById(userDetails.getAccount().getId())
+                .orElseThrow(() -> new IllegalArgumentException("계정을 찾을 수 없습니다."));
+
+        account.addExp(exp); //  경험치 증가 (Account 엔티티의 addExp 메서드)
         accountRepository.save(account);
     }
+
 
 
 
