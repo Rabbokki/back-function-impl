@@ -73,6 +73,21 @@ public class AmadeusClient {
         tokyoCity.put("iataCode", "TYO");
         tokyoLocations.add(tokyoCity);
         HARDCODED_LOCATIONS.put("Tokyo", tokyoLocations);
+
+        ArrayNode parisLocations = mapper.createArrayNode();
+        ObjectNode parisAirport = mapper.createObjectNode();
+        parisAirport.put("type", "location");
+        parisAirport.put("subType", "AIRPORT");
+        parisAirport.put("detailedName", "Paris/FR: Charles de Gaulle");
+        parisAirport.put("iataCode", "CDG");
+        parisLocations.add(parisAirport);
+        ObjectNode parisCity = mapper.createObjectNode();
+        parisCity.put("type", "location");
+        parisCity.put("subType", "CITY");
+        parisCity.put("detailedName", "Paris/FR");
+        parisCity.put("iataCode", "PAR");
+        parisLocations.add(parisCity);
+        HARDCODED_LOCATIONS.put("Paris", parisLocations);
     }
 
     public AmadeusClient(
@@ -91,17 +106,23 @@ public class AmadeusClient {
     public JsonNode searchLocations(String keyword) throws RuntimeException {
         log.info("Searching locations for keyword: {}", keyword);
 
+        // 키워드 매핑 디버깅
         String processedKeyword = CITY_TO_ENGLISH.getOrDefault(keyword, keyword);
-        if (!processedKeyword.matches("^[a-zA-Z0-9\\s]+$")) {
-            log.error("Invalid keyword: {}. Only English letters, numbers, or spaces are allowed.", processedKeyword);
-            throw new RuntimeException("Invalid keyword: " + keyword);
-        }
+        log.debug("Processed keyword: {} (original: {})", processedKeyword, keyword);
 
+        // 하드코딩된 데이터 우선 체크
         if (HARDCODED_LOCATIONS.containsKey(processedKeyword)) {
             log.info("Returning hardcoded locations for keyword: {}", processedKeyword);
             return HARDCODED_LOCATIONS.get(processedKeyword);
         }
 
+        // 키워드 유효성 검사
+        if (!processedKeyword.matches("^[a-zA-Z0-9\\s]+$")) {
+            log.error("Invalid keyword: {}. Only English letters, numbers, or spaces are allowed.", processedKeyword);
+            throw new RuntimeException("Invalid keyword: " + keyword);
+        }
+
+        // API 호출
         try {
             JsonNode response = webClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -122,6 +143,7 @@ public class AmadeusClient {
                                 });
                     })
                     .bodyToMono(JsonNode.class)
+                    .timeout(Duration.ofSeconds(10))
                     .block();
 
             if (response != null && response.has("data")) {
@@ -134,10 +156,10 @@ public class AmadeusClient {
         } catch (Exception e) {
             log.error("Error during location search for keyword: {}. Cause: {}, Message: {}, StackTrace: {}",
                     processedKeyword, e.getCause(), e.getMessage(), e.getStackTrace(), e);
-            // 재시도 로직
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 3; i++) {
                 try {
                     log.info("Retrying location search, attempt {}", i + 1);
+                    Thread.sleep(1000 * (i + 1)); // 지연 추가
                     fetchAccessToken();
                     JsonNode response = webClient.get()
                             .uri(uriBuilder -> uriBuilder
@@ -158,14 +180,12 @@ public class AmadeusClient {
                                         });
                             })
                             .bodyToMono(JsonNode.class)
+                            .timeout(Duration.ofSeconds(10))
                             .block();
 
                     if (response != null && response.has("data")) {
                         log.debug("Retry successful. Found {} locations for keyword: {}", response.get("data").size(), processedKeyword);
                         return response.get("data");
-                    } else {
-                        log.error("Invalid retry response from Amadeus locations endpoint: {}", response);
-                        throw new RuntimeException("Invalid retry locations response");
                     }
                 } catch (Exception retryEx) {
                     log.error("Retry {} failed for location search. Cause: {}, Message: {}, StackTrace: {}",
@@ -199,7 +219,7 @@ public class AmadeusClient {
                                 });
                     })
                     .bodyToMono(JsonNode.class)
-                    .timeout(Duration.ofSeconds(10)) // 타임아웃 추가
+                    .timeout(Duration.ofSeconds(10))
                     .block();
 
             if (response != null && response.has("access_token")) {

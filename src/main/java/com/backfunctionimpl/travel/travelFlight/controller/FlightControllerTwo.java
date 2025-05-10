@@ -132,7 +132,7 @@ public class FlightControllerTwo {
             response.put("success", false);
             response.put("data", null);
             response.put("error", Map.of("message", e.getMessage()));
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     @GetMapping("/detail/{flightId}")
