@@ -310,6 +310,13 @@ public class FlightSearchServiceTwo {
     }
 
     private FlightSearchResDto processFlightData(JsonNode data, String origin, String requestedDestination, boolean isRoundTrip, FlightSearchReqDto reqDto) {
+        if (!data.has("data") || data.get("data").isEmpty()) {
+            log.warn("No flight data returned from Amadeus API. Returning empty result.");
+            return FlightSearchResDto.builder()
+                    .success(true)
+                    .flights(Collections.emptyList())
+                    .build();
+        }
         List<FlightInfo> results = new ArrayList<>();
         Map<String, String> carrierMap = getCarrierMap();
         Set<String> uniqueFlights = new HashSet<>();
