@@ -28,6 +28,7 @@ public class PostService {
         Post post = Post.builder()
                 .title(dto.getTitle())
                 .content(dto.getContent())
+                .category(dto.getCategory())
                 .account(account)
                 .build();
 

@@ -26,6 +26,13 @@ public class LikeController {
         return likeService.addLike(postId, accountId);
     }
 
+    @PostMapping({"/comment/{commentId}"})
+    public ResponseDto<?> addCommentLike(@PathVariable("commentId") Long commentId,
+                                  @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long accountId = userDetails.getAccount().getId();
+        return likeService.addCommentLike(commentId, accountId);
+    }
+
     @DeleteMapping({"/{postId}"})
     public ResponseDto<?> removeLike(@PathVariable("postId") Long postId,
                                      @AuthenticationPrincipal UserDetailsImpl userDetails) {
@@ -33,10 +40,24 @@ public class LikeController {
         return likeService.removeLike(postId, accountId);
     }
 
+    @DeleteMapping({"/comment/{commentId}"})
+    public ResponseDto<?> removeCommentLike(@PathVariable("commentId") Long commentId,
+                                     @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long accountId = userDetails.getAccount().getId();
+        return likeService.removeCommentLike(commentId, accountId);
+    }
+
     @GetMapping({"/status/{postId}"})
     public ResponseDto<?> getPostLikeStatus(@PathVariable("postId") Long postId,
                                      @AuthenticationPrincipal UserDetailsImpl userDetails) {
         boolean isLiked = likeService.isPostLiked(postId, userDetails.getAccount());
+        return ResponseDto.success(isLiked);
+    }
+
+    @GetMapping({"/commentStatus/{commentId}"})
+    public ResponseDto<?> getCommentLikeStatus(@PathVariable("commentId") Long commentId,
+                                            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        boolean isLiked = likeService.isCommentLiked(commentId, userDetails.getAccount());
         return ResponseDto.success(isLiked);
     }
 
