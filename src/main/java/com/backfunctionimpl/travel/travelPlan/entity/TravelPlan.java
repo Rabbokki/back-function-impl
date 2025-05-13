@@ -22,7 +22,7 @@ public class TravelPlan extends BaseEntity {
     private LocalDate endDate;
     private String country;
     private String city;
-
+    private String place;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "a_id")
     private Account account;
