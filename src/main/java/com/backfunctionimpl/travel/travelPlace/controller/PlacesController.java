@@ -27,26 +27,22 @@ public class PlacesController {
     @GetMapping("/nearby")
     public ResponseEntity<?> getNearbyPlaces(
             @RequestParam(name = "lat") double lat,
-            @RequestParam(name = "lng") double lng
+            @RequestParam(name = "lng") double lng,
+            @RequestParam(name = "city") String city,
+            @RequestParam(name = "cityId") String cityId
     ) {
-        List<SimplePlaceDto> simplified = googlePlacesService.searchNearbyPlaces(lat, lng, "도쿄", "tokyo");
-        return ResponseEntity.ok(simplified);
+        List<SimplePlaceDto> result = googlePlacesService.searchNearbyPlaces(lat, lng, city, cityId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/search")
     public ResponseEntity<?> searchByKeyword(@RequestParam("keyword") String keyword) {
-        System.out.println("✅ searchByKeyword() 진입!");
-        System.out.println("🔍 keyword = [" + keyword + "]");
-
         keyword = keyword
                 .replaceAll("[‘’“”'\"`´]", "")
                 .replaceAll("\\p{C}", "")
                 .replaceAll("\\p{Z}", "")
                 .replaceAll("[^\\p{IsHangul}\\p{IsAlphabetic}]", "")
                 .trim();
-
-        System.out.println("🔧 cleaned keyword = [" + keyword + "]");
-        System.out.println("🧪 현재 등록된 키 목록: " + CountryCityMapper.getAvailableCities());
 
         Optional<double[]> coords = CountryCityMapper.getCoordinates(keyword);
         if (coords.isEmpty()) {
@@ -55,7 +51,6 @@ public class PlacesController {
         }
 
         double[] latLng = coords.get();
-
         List<SimplePlaceDto> simplified = googlePlacesService.searchNearbyPlaces(
                 latLng[0], latLng[1], keyword, keyword.toLowerCase()
         );
@@ -66,11 +61,13 @@ public class PlacesController {
     @GetMapping("/photo")
     public ResponseEntity<byte[]> getPhoto(@RequestParam("name") String photoName) {
         try {
-            // ✅ photoName에는 "places/xxx/photos/xxx" 같은 값이 들어와야 함
-            String url = String.format("https://places.googleapis.com/v1/%s/media?key=%s", photoName, apiKey);
+
+            String url = "https://places.googleapis.com/v1/" + photoName + "/media?key=" + apiKey;
+
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Goog-Api-Key", apiKey);
+            System.out.println("✅ key = " + apiKey);
             headers.setAccept(List.of(MediaType.IMAGE_JPEG));
 
             HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -79,14 +76,11 @@ public class PlacesController {
             return ResponseEntity.ok()
                     .contentType(MediaType.IMAGE_JPEG)
                     .body(response.getBody());
+
         } catch (Exception e) {
             System.err.println("🛑 이미지 요청 실패: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
-
-
-
 
 }

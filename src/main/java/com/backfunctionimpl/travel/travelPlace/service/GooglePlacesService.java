@@ -10,8 +10,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +31,6 @@ public class GooglePlacesService {
     public List<SimplePlaceDto> searchNearbyPlaces(double lat, double lng, String city, String cityId) {
         String url = "https://places.googleapis.com/v1/places:searchNearby";
 
-        // 1. 요청 바디 (JSON)
         String body = String.format("""
         {
           "includedTypes": ["tourist_attraction"],
@@ -49,19 +46,17 @@ public class GooglePlacesService {
         }
         """, lat, lng);
 
-        // 2. 요청 헤더
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Goog-Api-Key", apiKey);
-        headers.set("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.location,places.photos");
+        headers.set("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.photos");
+        headers.set("Accept-Language", "ko");
 
-        // 3. 요청 전송
         HttpEntity<String> request = new HttpEntity<>(body, headers);
         ResponseEntity<JsonNode> response = restTemplate.exchange(
                 url, HttpMethod.POST, request, JsonNode.class
         );
 
-        // 4. 응답 파싱
         JsonNode places = response.getBody().get("places");
         List<SimplePlaceDto> results = new ArrayList<>();
 
@@ -71,17 +66,21 @@ public class GooglePlacesService {
                 String address = place.path("formattedAddress").asText(null);
                 double rating = 0.0;
 
-                String photoName = place.path("photos").isArray() && place.path("photos").size() > 0
-                        ? place.path("photos").get(0).path("name").asText(null)
-                        : null;
-
-                String imageUrl;
-                if (photoName != null && photoName.startsWith("places/")) {
-                    imageUrl = String.format("places/%s", photoName.split("/")[photoName.split("/").length - 1]);
-                } else {
-                    imageUrl = photoName;
+                // ✅ 구버전 photo_reference 추출
+                String photoReference = null;
+                if (place.has("photos") && place.get("photos").isArray() && place.get("photos").size() > 0) {
+                    JsonNode photo = place.get("photos").get(0);
+                    String photoName = photo.path("name").asText(null); // 예: "places/XXX/photos/YYY"
+                    if (photoName != null && photoName.contains("/")) {
+                        // 마지막 부분만 추출
+                        photoReference = photoName.substring(photoName.lastIndexOf("/") + 1);
+                    }
                 }
 
+                // ✅ 구버전 URL 생성
+                String imageUrl = (photoReference != null)
+                        ? String.format("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=%s&key=%s", photoReference, apiKey)
+                        : null;
 
                 results.add(new SimplePlaceDto(
                         name,
@@ -96,7 +95,6 @@ public class GooglePlacesService {
                 ));
             }
         }
-
 
         return results;
     }
