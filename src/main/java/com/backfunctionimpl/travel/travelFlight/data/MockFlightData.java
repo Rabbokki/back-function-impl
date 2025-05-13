@@ -1,5 +1,7 @@
 package com.backfunctionimpl.travel.travelFlight.data;
 
+import com.backfunctionimpl.global.error.CustomException;
+import com.backfunctionimpl.global.error.ErrorCode;
 import com.backfunctionimpl.travel.travelFlight.dto.FlightInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,13 +10,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MockFlightData {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Map<String, JsonNode> LOCATIONS = new HashMap<>();
+    private static final Map<String, String> IATA_TO_CITY = new HashMap<>(); // IATA 코드 -> 도시명 매핑
     private static final Random random = new Random();
     private static final Map<String, String> aircraftMap = new HashMap<>();
     private static final Map<String, String> koreanToEnglishCityMap = new HashMap<>();
@@ -74,8 +80,7 @@ public class MockFlightData {
             countryCodeToAirline.put("ES", Arrays.asList("Iberia|IB|320"));
             countryCodeToAirline.put("IT", Arrays.asList("Alitalia|AZ|320"));
 
-            // 도시/공항 목록
-            // 서울 (ICN)
+            // 도시/공항 목록 및 IATA 코드 매핑
             ArrayNode seoulLocations = mapper.createArrayNode();
             ObjectNode icnAirport = mapper.createObjectNode();
             icnAirport.put("type", "location");
@@ -84,8 +89,8 @@ public class MockFlightData {
             icnAirport.put("iataCode", "ICN");
             seoulLocations.add(icnAirport);
             LOCATIONS.put("Seoul", seoulLocations);
+            IATA_TO_CITY.put("ICN", "Seoul");
 
-            // 파리 (CDG)
             ArrayNode parisLocations = mapper.createArrayNode();
             ObjectNode cdgAirport = mapper.createObjectNode();
             cdgAirport.put("type", "location");
@@ -94,8 +99,8 @@ public class MockFlightData {
             cdgAirport.put("iataCode", "CDG");
             parisLocations.add(cdgAirport);
             LOCATIONS.put("Paris", parisLocations);
+            IATA_TO_CITY.put("CDG", "Paris");
 
-            // 도쿄 (NRT, HND)
             ArrayNode tokyoLocations = mapper.createArrayNode();
             ObjectNode nrtAirport = mapper.createObjectNode();
             nrtAirport.put("type", "location");
@@ -110,8 +115,9 @@ public class MockFlightData {
             hndAirport.put("iataCode", "HND");
             tokyoLocations.add(hndAirport);
             LOCATIONS.put("Tokyo", tokyoLocations);
+            IATA_TO_CITY.put("NRT", "Tokyo");
+            IATA_TO_CITY.put("HND", "Tokyo");
 
-            // 홍콩 (HKG)
             ArrayNode hongKongLocations = mapper.createArrayNode();
             ObjectNode hkgAirport = mapper.createObjectNode();
             hkgAirport.put("type", "location");
@@ -120,8 +126,8 @@ public class MockFlightData {
             hkgAirport.put("iataCode", "HKG");
             hongKongLocations.add(hkgAirport);
             LOCATIONS.put("Hong Kong", hongKongLocations);
+            IATA_TO_CITY.put("HKG", "Hong Kong");
 
-            // 뉴욕 (JFK)
             ArrayNode newYorkLocations = mapper.createArrayNode();
             ObjectNode jfkAirport = mapper.createObjectNode();
             jfkAirport.put("type", "location");
@@ -130,8 +136,8 @@ public class MockFlightData {
             jfkAirport.put("iataCode", "JFK");
             newYorkLocations.add(jfkAirport);
             LOCATIONS.put("New York", newYorkLocations);
+            IATA_TO_CITY.put("JFK", "New York");
 
-            // 런던 (LHR)
             ArrayNode londonLocations = mapper.createArrayNode();
             ObjectNode lhrAirport = mapper.createObjectNode();
             lhrAirport.put("type", "location");
@@ -140,8 +146,8 @@ public class MockFlightData {
             lhrAirport.put("iataCode", "LHR");
             londonLocations.add(lhrAirport);
             LOCATIONS.put("London", londonLocations);
+            IATA_TO_CITY.put("LHR", "London");
 
-            // 싱가포르 (SIN)
             ArrayNode singaporeLocations = mapper.createArrayNode();
             ObjectNode sinAirport = mapper.createObjectNode();
             sinAirport.put("type", "location");
@@ -150,8 +156,8 @@ public class MockFlightData {
             sinAirport.put("iataCode", "SIN");
             singaporeLocations.add(sinAirport);
             LOCATIONS.put("Singapore", singaporeLocations);
+            IATA_TO_CITY.put("SIN", "Singapore");
 
-            // 방콕 (BKK)
             ArrayNode bangkokLocations = mapper.createArrayNode();
             ObjectNode bkkAirport = mapper.createObjectNode();
             bkkAirport.put("type", "location");
@@ -160,8 +166,8 @@ public class MockFlightData {
             bkkAirport.put("iataCode", "BKK");
             bangkokLocations.add(bkkAirport);
             LOCATIONS.put("Bangkok", bangkokLocations);
+            IATA_TO_CITY.put("BKK", "Bangkok");
 
-            // 로스앤젤레스 (LAX)
             ArrayNode losAngelesLocations = mapper.createArrayNode();
             ObjectNode laxAirport = mapper.createObjectNode();
             laxAirport.put("type", "location");
@@ -170,8 +176,8 @@ public class MockFlightData {
             laxAirport.put("iataCode", "LAX");
             losAngelesLocations.add(laxAirport);
             LOCATIONS.put("Los Angeles", losAngelesLocations);
+            IATA_TO_CITY.put("LAX", "Los Angeles");
 
-            // 시드니 (SYD)
             ArrayNode sydneyLocations = mapper.createArrayNode();
             ObjectNode sydAirport = mapper.createObjectNode();
             sydAirport.put("type", "location");
@@ -180,8 +186,8 @@ public class MockFlightData {
             sydAirport.put("iataCode", "SYD");
             sydneyLocations.add(sydAirport);
             LOCATIONS.put("Sydney", sydneyLocations);
+            IATA_TO_CITY.put("SYD", "Sydney");
 
-            // 두바이 (DXB)
             ArrayNode dubaiLocations = mapper.createArrayNode();
             ObjectNode dxbAirport = mapper.createObjectNode();
             dxbAirport.put("type", "location");
@@ -190,8 +196,8 @@ public class MockFlightData {
             dxbAirport.put("iataCode", "DXB");
             dubaiLocations.add(dxbAirport);
             LOCATIONS.put("Dubai", dubaiLocations);
+            IATA_TO_CITY.put("DXB", "Dubai");
 
-            // 상하이 (PVG)
             ArrayNode shanghaiLocations = mapper.createArrayNode();
             ObjectNode pvgAirport = mapper.createObjectNode();
             pvgAirport.put("type", "location");
@@ -200,8 +206,8 @@ public class MockFlightData {
             pvgAirport.put("iataCode", "PVG");
             shanghaiLocations.add(pvgAirport);
             LOCATIONS.put("Shanghai", shanghaiLocations);
+            IATA_TO_CITY.put("PVG", "Shanghai");
 
-            // 프랑크푸르트 (FRA)
             ArrayNode frankfurtLocations = mapper.createArrayNode();
             ObjectNode fraAirport = mapper.createObjectNode();
             fraAirport.put("type", "location");
@@ -210,8 +216,8 @@ public class MockFlightData {
             fraAirport.put("iataCode", "FRA");
             frankfurtLocations.add(fraAirport);
             LOCATIONS.put("Frankfurt", frankfurtLocations);
+            IATA_TO_CITY.put("FRA", "Frankfurt");
 
-            // 암스테르담 (AMS)
             ArrayNode amsterdamLocations = mapper.createArrayNode();
             ObjectNode amsAirport = mapper.createObjectNode();
             amsAirport.put("type", "location");
@@ -220,8 +226,8 @@ public class MockFlightData {
             amsAirport.put("iataCode", "AMS");
             amsterdamLocations.add(amsAirport);
             LOCATIONS.put("Amsterdam", amsterdamLocations);
+            IATA_TO_CITY.put("AMS", "Amsterdam");
 
-            // 마드리드 (MAD)
             ArrayNode madridLocations = mapper.createArrayNode();
             ObjectNode madAirport = mapper.createObjectNode();
             madAirport.put("type", "location");
@@ -230,8 +236,8 @@ public class MockFlightData {
             madAirport.put("iataCode", "MAD");
             madridLocations.add(madAirport);
             LOCATIONS.put("Madrid", madridLocations);
+            IATA_TO_CITY.put("MAD", "Madrid");
 
-            // 로마 (FCO)
             ArrayNode romeLocations = mapper.createArrayNode();
             ObjectNode fcoAirport = mapper.createObjectNode();
             fcoAirport.put("type", "location");
@@ -240,11 +246,193 @@ public class MockFlightData {
             fcoAirport.put("iataCode", "FCO");
             romeLocations.add(fcoAirport);
             LOCATIONS.put("Rome", romeLocations);
+            IATA_TO_CITY.put("FCO", "Rome");
 
         } catch (Exception e) {
             System.err.println("MockFlightData initialization failed: " + e.getMessage());
             throw new RuntimeException("Failed to initialize MockFlightData", e);
         }
+    }
+
+    public static JsonNode getLocations(String term) {
+        String decodedTerm;
+        try {
+            decodedTerm = URLDecoder.decode(term, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            System.err.println("Failed to decode term: " + term);
+            decodedTerm = term;
+        }
+
+        String normalizedTerm = decodedTerm.trim().toLowerCase();
+        System.out.println("getLocations 호출: Original term=" + term + ", Decoded term=" + decodedTerm + ", Normalized term=" + normalizedTerm);
+
+        String searchKey = koreanToEnglishCityMap.entrySet().stream()
+                .filter(entry -> normalizedTerm.equals(entry.getKey().toLowerCase()) || normalizedTerm.contains(entry.getKey().toLowerCase()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(normalizedTerm);
+
+        System.out.println("Search key: " + searchKey);
+
+        List<JsonNode> matchingLocations = new ArrayList<>();
+        for (Map.Entry<String, JsonNode> entry : LOCATIONS.entrySet()) {
+            String cityName = entry.getKey();
+            JsonNode locations = entry.getValue();
+            if (cityName.toLowerCase().equals(searchKey.toLowerCase()) || locations.toString().toLowerCase().contains(searchKey.toLowerCase())) {
+                matchingLocations.add(locations);
+            }
+        }
+
+        ArrayNode result = mapper.createArrayNode();
+        matchingLocations.forEach(node -> result.addAll((ArrayNode) node));
+        System.out.println("Matching locations count: " + result.size() + ", locations: " + result.toString());
+        return result;
+    }
+
+    public static List<FlightInfo> getFlights(String origin, String destination, String departureDate, String returnDate) {
+        long startTime = System.currentTimeMillis();
+        System.out.println("MockFlightData.getFlights 호출: origin=" + origin + ", destination=" + destination +
+                ", departureDate=" + departureDate + ", returnDate=" + returnDate);
+
+        // IATA 코드 또는 도시명 처리
+        String decodedOrigin = decodeCity(origin);
+        String decodedDestination = decodeCity(destination);
+        String englishOrigin = resolveCity(decodedOrigin);
+        String englishDestination = resolveCity(decodedDestination);
+
+        JsonNode originLocations = LOCATIONS.get(englishOrigin);
+        JsonNode destinationLocations = LOCATIONS.get(englishDestination);
+
+        if (originLocations == null || destinationLocations == null) {
+            System.out.println("출발지 또는 도착지 공항 정보 없음: origin=" + englishOrigin + ", destination=" + englishDestination);
+            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "지원되지 않는 출발지 또는 도착지입니다.");
+        }
+
+        List<String> originAirports = new ArrayList<>();
+        originLocations.forEach(node -> originAirports.add(node.get("iataCode").asText()));
+        List<String> destinationAirports = new ArrayList<>();
+        destinationLocations.forEach(node -> destinationAirports.add(node.get("iataCode").asText()));
+
+        if (originAirports.isEmpty() || destinationAirports.isEmpty()) {
+            System.out.println("공항 코드 목록 비어 있음: originAirports=" + originAirports + ", destinationAirports=" + destinationAirports);
+            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "공항 정보를 찾을 수 없습니다.");
+        }
+
+        LocalDate parsedDepartureDate;
+        LocalDate parsedReturnDate = null;
+        try {
+            parsedDepartureDate = LocalDate.parse(departureDate);
+        } catch (DateTimeParseException e) {
+            System.out.println("출발일 파싱 실패: " + departureDate);
+            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "유효하지 않은 출발일 형식입니다.");
+        }
+        boolean isRoundTrip = returnDate != null && !returnDate.isEmpty();
+        if (isRoundTrip) {
+            try {
+                parsedReturnDate = LocalDate.parse(returnDate);
+                if (parsedReturnDate.isBefore(parsedDepartureDate)) {
+                    System.out.println("귀국일이 출발일보다 빠름: returnDate=" + returnDate + ", departureDate=" + departureDate);
+                    throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "귀국일은 출발일 이후여야 합니다.");
+                }
+            } catch (DateTimeParseException e) {
+                System.out.println("귀국일 파싱 실패: " + returnDate);
+                throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "유효하지 않은 귀국일 형식입니다.");
+            }
+        }
+
+        List<FlightInfo> flights = generateFlights(
+                originAirports, destinationAirports, parsedDepartureDate, parsedReturnDate, isRoundTrip);
+
+        System.out.println("생성된 항공편 수: " + flights.size() + ", 소요 시간: " + (System.currentTimeMillis() - startTime) + "ms");
+        return flights;
+    }
+
+    private static String resolveCity(String input) {
+        // IATA 코드인 경우 도시명으로 변환
+        if (IATA_TO_CITY.containsKey(input)) {
+            return IATA_TO_CITY.get(input);
+        }
+        // 한글 도시명인 경우 영어로 변환
+        String englishCity = koreanToEnglishCityMap.getOrDefault(input, input);
+        // LOCATIONS 맵에 존재하는지 확인
+        return LOCATIONS.containsKey(englishCity) ? englishCity : input;
+    }
+
+    private static List<FlightInfo> generateFlights(List<String> originAirports, List<String> destinationAirports,
+                                                    LocalDate departureDate, LocalDate returnDate, boolean isRoundTrip) {
+        List<FlightInfo> flights = new ArrayList<>();
+        int maxFlights = 10;
+
+        String originCountry = originAirports.get(0).equals("ICN") ? "KR" : destinationAirports.get(0).equals("CDG") ? "FR" : "US";
+        String destinationCountry = destinationAirports.get(0).equals("CDG") ? "FR" : originAirports.get(0).equals("ICN") ? "KR" : "US";
+        List<String> availableAirlines = new ArrayList<>();
+        availableAirlines.addAll(countryCodeToAirline.getOrDefault(originCountry, new ArrayList<>()));
+        availableAirlines.addAll(countryCodeToAirline.getOrDefault(destinationCountry, new ArrayList<>()));
+        availableAirlines.addAll(globalAirlines);
+        if (availableAirlines.isEmpty()) {
+            availableAirlines.add("대한항공|KE|777");
+            availableAirlines.add("Air France|AF|350");
+        }
+
+        List<Integer> departureHours = Arrays.asList(6, 8, 10, 12, 14, 16, 18, 20, 22);
+        int baseDurationHours = estimateFlightDuration(originAirports.get(0), destinationAirports.get(0));
+        int basePrice = calculateBasePrice(baseDurationHours);
+
+        for (int i = 0; i < maxFlights && flights.size() < maxFlights; i++) {
+            String originAirport = originAirports.get(random.nextInt(originAirports.size()));
+            String destinationAirport = destinationAirports.get(random.nextInt(destinationAirports.size()));
+            String airlineData = availableAirlines.get(random.nextInt(availableAirlines.size()));
+            String[] airlineParts = airlineData.split("\\|");
+            String carrier = airlineParts[0];
+            String carrierCode = airlineParts[1];
+            String aircraftCode = airlineParts[2];
+
+            int hour = departureHours.get(random.nextInt(departureHours.size()));
+            LocalDateTime departureTime = departureDate.atTime(hour, random.nextInt(60));
+            int durationHours = baseDurationHours + random.nextInt(3) - 1;
+            LocalDateTime arrivalTime = departureTime.plusHours(durationHours).plusMinutes(random.nextInt(60));
+            int price = basePrice + random.nextInt(200000) - 100000;
+            if (price < 200000) price = 200000;
+
+            String flightId = UUID.randomUUID().toString();
+            String flightNumber = carrierCode + (100 + random.nextInt(900));
+
+            FlightInfo flight = createFlight(
+                    flightId, originAirport, destinationAirport, carrier, carrierCode, flightNumber,
+                    departureTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), durationHours, price, aircraftCode);
+
+            if (isRoundTrip && returnDate != null) {
+                String returnAirlineData = availableAirlines.get(random.nextInt(availableAirlines.size()));
+                String[] returnAirlineParts = returnAirlineData.split("\\|");
+                String returnCarrier = returnAirlineParts[0];
+                String returnCarrierCode = returnAirlineParts[1];
+                String returnAircraftCode = returnAirlineParts[2];
+                String returnFlightNumber = returnCarrierCode + (100 + random.nextInt(900));
+
+                int returnHour = departureHours.get(random.nextInt(departureHours.size()));
+                LocalDateTime returnDepartureTime = returnDate.atTime(returnHour, random.nextInt(60));
+                int returnDurationHours = baseDurationHours + random.nextInt(3) - 1;
+                LocalDateTime returnArrivalTime = returnDepartureTime.plusHours(returnDurationHours).plusMinutes(random.nextInt(60));
+                int returnPrice = price + random.nextInt(100000) - 50000;
+
+                flight.setReturnDepartureAirport(destinationAirport);
+                flight.setReturnArrivalAirport(originAirport);
+                flight.setReturnDepartureTime(returnDepartureTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                flight.setReturnArrivalTime(returnArrivalTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                flight.setReturnDuration(String.format("PT%dH", returnDurationHours));
+                flight.setReturnCarrier(returnCarrier);
+                flight.setReturnCarrierCode(returnCarrierCode);
+                flight.setReturnFlightNumber(returnFlightNumber);
+                flight.setPrice(String.valueOf(price + returnPrice));
+            }
+
+            flights.add(flight);
+        }
+
+        return flights.stream()
+                .sorted(Comparator.comparingDouble(f -> Double.parseDouble(f.getPrice())))
+                .limit(maxFlights)
+                .collect(Collectors.toList());
     }
 
     private static FlightInfo createFlight(String id, String departureAirport, String arrivalAirport, String carrier,
@@ -269,16 +457,15 @@ public class MockFlightData {
         flight.setDuration(String.format("PT%dH", hours));
 
         try {
-            LocalDateTime departureDateTime = LocalDateTime.parse("2025-01-01T" + departureTime);
+            LocalDateTime departureDateTime = LocalDateTime.parse(departureTime);
             flight.setDepartureTime(departureDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            LocalDateTime arrivalDateTime = departureDateTime.plusHours(hours);
+            LocalDateTime arrivalDateTime = departureDateTime.plusHours(hours).plusMinutes(random.nextInt(60));
             flight.setArrivalTime(arrivalDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            // 시간대 설정
             flight.setDepartureTimeZone(getTimeZone(departureAirport));
             flight.setArrivalTimeZone(getTimeZone(arrivalAirport));
-        } catch (Exception e) {
-            System.err.println("Failed to parse date in createFlight: id=" + id + ", departureTime=" + departureTime);
-            throw new RuntimeException("Invalid date format in createFlight", e);
+        } catch (DateTimeParseException e) {
+            System.out.println("날짜 파싱 오류: departureTime=" + departureTime);
+            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH, "유효하지 않은 날짜 형식입니다.");
         }
 
         return flight;
@@ -306,10 +493,19 @@ public class MockFlightData {
         return airportTimeZones.getOrDefault(iataCode, "UTC");
     }
 
+    private static String decodeCity(String city) {
+        try {
+            return URLDecoder.decode(city, StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            System.out.println("도시명 디코딩 실패: " + city);
+            return city;
+        }
+    }
+
     private static int estimateFlightDuration(String origin, String destination) {
         Map<String, Integer> durationMap = new HashMap<>();
         durationMap.put("ICN-CDG", 12);
-        durationMap.put("CDG-ICN", 12);
+        durationMap.put("CDG-ICN", 11);
         durationMap.put("ICN-NRT", 2);
         durationMap.put("NRT-ICN", 2);
         durationMap.put("ICN-HND", 2);
@@ -317,15 +513,15 @@ public class MockFlightData {
         durationMap.put("ICN-HKG", 3);
         durationMap.put("HKG-ICN", 3);
         durationMap.put("ICN-JFK", 14);
-        durationMap.put("JFK-ICN", 14);
+        durationMap.put("JFK-ICN", 15);
         durationMap.put("ICN-LHR", 12);
-        durationMap.put("LHR-ICN", 12);
+        durationMap.put("LHR-ICN", 11);
         durationMap.put("ICN-SIN", 6);
         durationMap.put("SIN-ICN", 6);
         durationMap.put("ICN-BKK", 5);
         durationMap.put("BKK-ICN", 5);
         durationMap.put("ICN-LAX", 11);
-        durationMap.put("LAX-ICN", 11);
+        durationMap.put("LAX-ICN", 12);
         durationMap.put("ICN-SYD", 10);
         durationMap.put("SYD-ICN", 10);
         durationMap.put("ICN-DXB", 9);
@@ -342,218 +538,10 @@ public class MockFlightData {
         durationMap.put("FCO-ICN", 12);
 
         String key = origin + "-" + destination;
-        String reverseKey = destination + "-" + origin;
-        if (durationMap.containsKey(key)) {
-            return durationMap.get(key);
-        } else if (durationMap.containsKey(reverseKey)) {
-            return durationMap.get(reverseKey);
-        }
-        String originCountry = getCountryCode(origin);
-        String destCountry = getCountryCode(destination);
-        if (originCountry != null && destCountry != null && originCountry.equals(destCountry)) {
-            return 3; // 같은 대륙 내
-        }
-        return 10; // 대륙 간
+        return durationMap.getOrDefault(key, 8);
     }
 
-    private static String getCountryCode(String iataCode) {
-        for (JsonNode locations : LOCATIONS.values()) {
-            for (JsonNode location : locations) {
-                if (iataCode.equals(location.get("iataCode").asText())) {
-                    String detailedName = location.get("detailedName").asText();
-                    int slashIndex = detailedName.indexOf('/');
-                    int colonIndex = detailedName.indexOf(':');
-                    if (slashIndex != -1 && colonIndex != -1 && slashIndex + 2 <= colonIndex - 1) {
-                        return detailedName.substring(slashIndex + 1, colonIndex);
-                    }
-                }
-            }
-        }
-        System.err.println("Country code not found for IATA: " + iataCode);
-        return null;
-    }
-
-    private static List<FlightInfo> generateFlights(String origin, String destination, String departureDate) {
-        System.out.println("Generating flights for " + origin + "-" + destination);
-        List<FlightInfo> flights = new ArrayList<>();
-        int duration = estimateFlightDuration(origin, destination);
-        System.out.println("Flight duration: " + duration + " hours");
-        int basePrice;
-        String aircraftCode;
-
-        // 가격 및 기종 설정
-        if (duration <= 3) {
-            basePrice = 150000 + random.nextInt(150000); // 단거리
-            aircraftCode = random.nextBoolean() ? "320" : "737";
-        } else if (duration <= 7) {
-            basePrice = 300000 + random.nextInt(300000); // 중거리
-            aircraftCode = random.nextBoolean() ? "330" : "777";
-        } else {
-            basePrice = 800000 + random.nextInt(700000); // 장거리
-            aircraftCode = random.nextBoolean() ? "350" : "787";
-        }
-
-        // 항공사 선택
-        List<String> airlines = new ArrayList<>();
-        String originCountry = getCountryCode(origin);
-        String destCountry = getCountryCode(destination);
-        if (originCountry != null && countryCodeToAirline.containsKey(originCountry)) {
-            airlines.addAll(countryCodeToAirline.get(originCountry));
-        }
-        if (destCountry != null && countryCodeToAirline.containsKey(destCountry)) {
-            airlines.addAll(countryCodeToAirline.get(destCountry));
-        }
-        Collections.shuffle(globalAirlines);
-        airlines.addAll(globalAirlines);
-        System.out.println("Selected airlines: " + airlines);
-
-        // 출발 시간
-        String[] departureTimes = {"08:00:00", "10:00:00", "12:00:00", "14:00:00", "16:00:00", "18:00:00", "20:00:00"};
-        int flightCount = Math.min(airlines.size() * 2, departureTimes.length * 2); // 최대 14개 항공편
-
-        for (int i = 0; i < flightCount; i++) {
-            String airline = airlines.get(i % airlines.size());
-            String[] airlineData = airline.split("\\|");
-            if (airlineData.length < 2) {
-                System.err.println("Invalid airline data: " + airline + ", skipping");
-                continue;
-            }
-            String carrier = airlineData[0];
-            String carrierCode = airlineData[1];
-            String flightAircraft = airlineData.length > 2 ? airlineData[2] : aircraftCode;
-            String flightNumber = carrierCode + (100 + random.nextInt(900));
-            String departureTime = departureTimes[i % departureTimes.length];
-            String flightId = "FL" + String.format("%03d", (i + 1)) + "-" + origin + "-" + destination;
-
-            FlightInfo flight = createFlight(
-                    flightId,
-                    origin,
-                    destination,
-                    carrier,
-                    carrierCode,
-                    flightNumber,
-                    departureTime,
-                    duration,
-                    basePrice + (i * 50000), // 가격 다양화
-                    flightAircraft
-            );
-            flights.add(flight);
-            System.out.println("Generated flight: id=" + flightId + ", carrier=" + carrier + ", departure=" + departureTime);
-        }
-
-        System.out.println("Generated flights count: " + flights.size());
-        return flights;
-    }
-
-    public static JsonNode getLocations(String term) {
-        String decodedTerm;
-        try {
-            decodedTerm = URLDecoder.decode(term, StandardCharsets.UTF_8.name());
-        } catch (Exception e) {
-            System.err.println("Failed to decode term: " + term);
-            decodedTerm = term;
-        }
-
-        String normalizedTerm = decodedTerm.trim().toLowerCase();
-        System.out.println("Original term: " + term + ", Decoded term: " + decodedTerm + ", Normalized term: " + normalizedTerm);
-
-        String searchKey = koreanToEnglishCityMap.entrySet().stream()
-                .filter(entry -> normalizedTerm.equals(entry.getKey().toLowerCase()) || normalizedTerm.contains(entry.getKey().toLowerCase()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElse(normalizedTerm);
-
-        System.out.println("Search key: " + searchKey);
-
-        List<JsonNode> matchingLocations = new ArrayList<>();
-        for (Map.Entry<String, JsonNode> entry : LOCATIONS.entrySet()) {
-            String cityName = entry.getKey();
-            JsonNode locations = entry.getValue();
-            System.out.println("Comparing cityName: " + cityName + " with searchKey: " + searchKey);
-            if (cityName.toLowerCase().equals(searchKey.toLowerCase()) || locations.toString().toLowerCase().contains(searchKey.toLowerCase())) {
-                matchingLocations.add(locations);
-            }
-        }
-
-        ArrayNode result = mapper.createArrayNode();
-        matchingLocations.forEach(node -> result.addAll((ArrayNode) node));
-        System.out.println("Matching locations count: " + result.size() + ", locations: " + result.toString());
-        return result;
-    }
-
-    public static List<FlightInfo> getFlights(String origin, String destination, String departureDate, String returnDate) {
-        try {
-            List<FlightInfo> results = generateFlights(origin, destination, departureDate);
-
-            for (FlightInfo flight : results) {
-                try {
-                    LocalDateTime baseTime = LocalDateTime.parse(departureDate + "T" + flight.getDepartureTime().split("T")[1]);
-                    flight.setDepartureTime(baseTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    long hours = Long.parseLong(flight.getDuration().replace("PT", "").replace("H", ""));
-                    flight.setArrivalTime(baseTime.plusHours(hours).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    // 시간대 재설정
-                    flight.setDepartureTimeZone(getTimeZone(flight.getDepartureAirport()));
-                    flight.setArrivalTimeZone(getTimeZone(flight.getArrivalAirport()));
-                } catch (Exception e) {
-                    System.err.println("Failed to parse flight dates: id=" + flight.getId());
-                    continue;
-                }
-            }
-
-            if (returnDate != null && !returnDate.isEmpty()) {
-                List<FlightInfo> returnFlights = generateFlights(destination, origin, returnDate);
-                List<FlightInfo> combinedFlights = new ArrayList<>();
-
-                for (FlightInfo outbound : results) {
-                    for (FlightInfo inbound : returnFlights) {
-                        FlightInfo combined = new FlightInfo();
-                        combined.setId(outbound.getId() + "-RT");
-                        combined.setDepartureAirport(outbound.getDepartureAirport());
-                        combined.setArrivalAirport(outbound.getArrivalAirport());
-                        combined.setCarrier(outbound.getCarrier());
-                        combined.setCarrierCode(outbound.getCarrierCode());
-                        combined.setFlightNumber(outbound.getFlightNumber());
-                        combined.setAircraft(outbound.getAircraft());
-                        combined.setPrice(String.valueOf(Integer.parseInt(outbound.getPrice()) + Integer.parseInt(inbound.getPrice())));
-                        combined.setCurrency(outbound.getCurrency());
-                        combined.setCabinBaggage(outbound.getCabinBaggage());
-                        combined.setNumberOfBookableSeats(Math.min(outbound.getNumberOfBookableSeats(), inbound.getNumberOfBookableSeats()));
-                        combined.setDuration(outbound.getDuration());
-                        combined.setDepartureTime(outbound.getDepartureTime());
-                        combined.setArrivalTime(outbound.getArrivalTime());
-                        combined.setDepartureTimeZone(outbound.getDepartureTimeZone());
-                        combined.setArrivalTimeZone(outbound.getArrivalTimeZone());
-
-                        try {
-                            LocalDateTime returnBaseTime = LocalDateTime.parse(returnDate + "T" + inbound.getDepartureTime().split("T")[1]);
-                            combined.setReturnDepartureAirport(inbound.getDepartureAirport());
-                            combined.setReturnArrivalAirport(inbound.getArrivalAirport());
-                            combined.setReturnCarrier(inbound.getCarrier());
-                            combined.setReturnCarrierCode(inbound.getCarrierCode());
-                            combined.setReturnFlightNumber(inbound.getFlightNumber());
-                            combined.setReturnDuration(inbound.getDuration());
-                            combined.setReturnDepartureTime(returnBaseTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                            combined.setReturnArrivalTime(returnBaseTime.plusHours(Long.parseLong(inbound.getDuration().replace("PT", "").replace("H", "")))
-                                    .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                            combined.setReturnDepartureTimeZone(inbound.getDepartureTimeZone());
-                            combined.setReturnArrivalTimeZone(inbound.getArrivalTimeZone());
-                        } catch (Exception e) {
-                            System.err.println("Failed to parse return flight dates: id=" + inbound.getId());
-                            continue;
-                        }
-
-                        combinedFlights.add(combined);
-                    }
-                }
-                System.out.println("  Combined flights count: " + combinedFlights.size());
-                return combinedFlights;
-            }
-
-            System.out.println("Outbound flights count: " + results.size());
-            return results;
-        } catch (Exception e) {
-            System.err.println("Error generating flights for " + origin + "-" + destination + ": " + e.getMessage());
-            return Collections.emptyList();
-        }
+    private static int calculateBasePrice(int durationHours) {
+        return 200000 + (durationHours * 50000);
     }
 }

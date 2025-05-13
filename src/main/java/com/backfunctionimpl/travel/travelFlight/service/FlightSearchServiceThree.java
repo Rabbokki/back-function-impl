@@ -1,13 +1,15 @@
 package com.backfunctionimpl.travel.travelFlight.service;
 
+import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.global.error.CustomException;
 import com.backfunctionimpl.global.error.ErrorCode;
 import com.backfunctionimpl.travel.config.AmadeusClient;
 import com.backfunctionimpl.travel.travelFlight.data.MockFlightData;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightInfo;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchReqDto;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchResDto;
+import com.backfunctionimpl.travel.travelFlight.dto.*;
+import com.backfunctionimpl.travel.travelFlight.entity.AccountFlight;
 import com.backfunctionimpl.travel.travelFlight.entity.TravelFlight;
+import com.backfunctionimpl.travel.travelFlight.repository.AccountFlightRepository;
 import com.backfunctionimpl.travel.travelFlight.repository.TravelFlightRepository;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import com.backfunctionimpl.travel.travelPlan.repository.TravelPlanRepository;
@@ -17,25 +19,33 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class FlightSearchServiceThree {
     private final AmadeusClient amadeusClient;
     private final TravelFlightRepository travelFlightRepository;
+    private final AccountFlightRepository accountFlightRepository;
+    private final AccountRepository accountRepository;
     private final TravelPlanRepository travelPlanRepository;
     private final ObjectMapper objectMapper;
 
     public FlightSearchServiceThree(AmadeusClient amadeusClient, TravelFlightRepository travelFlightRepository,
+                                    AccountRepository accountRepository,
+                                    AccountFlightRepository accountFlightRepository,
                                     TravelPlanRepository travelPlanRepository) {
         this.amadeusClient = amadeusClient;
         this.travelFlightRepository = travelFlightRepository;
+        this.accountRepository = accountRepository;
+        this.accountFlightRepository = accountFlightRepository;
         this.travelPlanRepository = travelPlanRepository;
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
@@ -57,8 +67,10 @@ public class FlightSearchServiceThree {
         boolean isRoundTrip = reqDto.isRealTime() && returnDate != null && !returnDate.isEmpty();
 
         try {
+            long startTime = System.currentTimeMillis();
+            // Mock 데이터 조회
             List<FlightInfo> flights = MockFlightData.getFlights(origin, destination, departureDate, returnDate);
-            log.info("Mock 데이터에서 {}개의 항공편 반환", flights.size());
+            log.info("Mock 데이터에서 {}개의 항공편 반환, 소요 시간: {}ms", flights.size(), System.currentTimeMillis() - startTime);
 
             if (flights.isEmpty()) {
                 log.warn("항공편 검색 결과 없음: origin={}, destination={}, departureDate={}, returnDate={}",
@@ -66,12 +78,15 @@ public class FlightSearchServiceThree {
                 throw new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "검색된 항공편이 없습니다. 다른 경로 또는 날짜를 시도해주세요.");
             }
 
+            // 항공편 저장
             List<FlightInfo> savedFlights = new ArrayList<>();
+            startTime = System.currentTimeMillis();
             for (FlightInfo flight : flights) {
                 Long travelFlightId = saveFlightForSearch(flight, reqDto);
                 flight.setTravelFlightId(travelFlightId);
                 savedFlights.add(flight);
             }
+            log.info("항공편 저장 완료, 소요 시간: {}ms", System.currentTimeMillis() - startTime);
 
             if (isRoundTrip && savedFlights.stream().noneMatch(f -> f.getReturnDepartureTime() != null)) {
                 log.warn("왕복 요청이지만 귀국 여정 데이터 없음: origin={}, destination={}, returnDate={}",
@@ -200,8 +215,10 @@ public class FlightSearchServiceThree {
         travelFlight.setCreatedAt(LocalDateTime.now());
         travelFlight.setUpdatedAt(LocalDateTime.now());
 
+        long startTime = System.currentTimeMillis();
         travelFlight = travelFlightRepository.save(travelFlight);
-        log.info("항공편 저장 성공: id={}, flightId={}", travelFlight.getId(), travelFlight.getFlightId());
+        log.info("항공편 저장 성공: id={}, flightId={}, 소요 시간: {}ms",
+                travelFlight.getId(), travelFlight.getFlightId(), System.currentTimeMillis() - startTime);
         return travelFlight.getId();
     }
 
@@ -210,8 +227,7 @@ public class FlightSearchServiceThree {
         FlightSearchResDto result = searchFlights(reqDto);
         if (result.getFlights().isEmpty()) {
             log.error("항공편 검색 결과 없음: {}", reqDto);
-            throw new CustomException(
-                    ErrorCode.INVALID_FLIGHT_SEARCH);
+            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
         }
 
         TravelPlan travelPlan = travelPlanRepository.findById(travelPlanId)
@@ -254,8 +270,10 @@ public class FlightSearchServiceThree {
         travelFlight.setCreatedAt(LocalDateTime.now());
         travelFlight.setUpdatedAt(LocalDateTime.now());
 
+        long startTime = System.currentTimeMillis();
         travelFlight = travelFlightRepository.save(travelFlight);
-        log.info("항공편 저장 성공: id = {}, flightId = {}", travelFlight.getId(), travelFlight.getFlightId());
+        log.info("항공편 저장 성공: id = {}, flightId = {}, 소요 시간: {}ms",
+                travelFlight.getId(), travelFlight.getFlightId(), System.currentTimeMillis() - startTime);
         return travelFlight.getId();
     }
 
@@ -318,6 +336,65 @@ public class FlightSearchServiceThree {
         carrierMap.put("BA", "British Airways");
         return carrierMap.getOrDefault(carrierCode, "Unknown Airline");
     }
+    @Transactional
+    public void saveBooking(Long accountId, AccountFlightRequestDto requestDto) {
+        log.info("예약 저장 요청: accountId={}, flightId={}", accountId, requestDto.getFlightId());
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_USER, "사용자를 찾을 수 없습니다."));
+
+        AccountFlight accountFlight = new AccountFlight();
+        accountFlight.setAccount(account);
+        accountFlight.setFlightId(requestDto.getFlightId());
+        accountFlight.setCarrier(requestDto.getCarrier());
+        accountFlight.setCarrierCode(requestDto.getCarrierCode());
+        accountFlight.setFlightNumber(requestDto.getFlightNumber());
+        accountFlight.setDepartureAirport(requestDto.getDepartureAirport());
+        accountFlight.setArrivalAirport(requestDto.getArrivalAirport());
+        accountFlight.setDepartureTime(requestDto.getDepartureTime());
+        accountFlight.setArrivalTime(requestDto.getArrivalTime());
+        accountFlight.setReturnDepartureAirport(requestDto.getReturnDepartureAirport());
+        accountFlight.setReturnArrivalAirport(requestDto.getReturnArrivalAirport());
+        accountFlight.setReturnDepartureTime(requestDto.getReturnDepartureTime());
+        accountFlight.setReturnArrivalTime(requestDto.getReturnArrivalTime());
+        accountFlight.setPassengerCount(requestDto.getPassengerCount());
+        accountFlight.setSelectedSeats(String.join(",", requestDto.getSelectedSeats()));
+        accountFlight.setTotalPrice(requestDto.getTotalPrice());
+        accountFlight.setStatus("RESERVED");
+
+        accountFlightRepository.save(accountFlight);
+        log.info("예약 저장 완료: id={}", accountFlight.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AccountFlightResponseDto> getUserBookings(Long accountId) {
+        log.info("사용자 예약 조회 요청: accountId={}", accountId);
+
+        List<AccountFlight> bookings = accountFlightRepository.findByAccountId(accountId);
+        return bookings.stream().map(booking -> {
+            AccountFlightResponseDto dto = new AccountFlightResponseDto();
+            dto.setId(booking.getId());
+            dto.setFlightId(booking.getFlightId());
+            dto.setCarrier(booking.getCarrier());
+            dto.setCarrierCode(booking.getCarrierCode());
+            dto.setFlightNumber(booking.getFlightNumber());
+            dto.setDepartureAirport(booking.getDepartureAirport());
+            dto.setArrivalAirport(booking.getArrivalAirport());
+            dto.setDepartureTime(booking.getDepartureTime());
+            dto.setArrivalTime(booking.getArrivalTime());
+            dto.setReturnDepartureAirport(booking.getReturnDepartureAirport());
+            dto.setReturnArrivalAirport(booking.getReturnArrivalAirport());
+            dto.setReturnDepartureTime(booking.getReturnDepartureTime());
+            dto.setReturnArrivalTime(booking.getReturnArrivalTime());
+            dto.setPassengerCount(booking.getPassengerCount());
+            dto.setSelectedSeats(List.of(booking.getSelectedSeats().split(",")));
+            dto.setTotalPrice(booking.getTotalPrice());
+            dto.setStatus(booking.getStatus());
+            dto.setCreatedAt(booking.getCreatedAt());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+}
 
 
 //    static class MockFlightData {
@@ -358,4 +435,3 @@ public class FlightSearchServiceThree {
 //            return flights;
 //        }
 
-}

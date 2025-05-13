@@ -48,6 +48,7 @@ public class AccountService {
         Account account = new Account();
         account.setEmail(request.getEmail());
         account.setName(request.getName());
+        account.setRole("USER");
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());

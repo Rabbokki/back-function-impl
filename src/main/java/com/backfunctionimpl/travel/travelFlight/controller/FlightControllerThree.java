@@ -5,18 +5,18 @@ import com.backfunctionimpl.global.error.CustomException;
 import com.backfunctionimpl.global.error.ErrorCode;
 import com.backfunctionimpl.travel.config.AmadeusClient;
 import com.backfunctionimpl.travel.travelFlight.data.MockFlightData;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightInfo;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchReqDto;
-import com.backfunctionimpl.travel.travelFlight.dto.FlightSearchResDto;
+import com.backfunctionimpl.travel.travelFlight.dto.*;
 import com.backfunctionimpl.travel.travelFlight.service.FlightSearchServiceThree;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.maps.internal.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -93,7 +93,7 @@ public class FlightControllerThree {
     }
 
     @GetMapping("/autocomplete")
-    public ResponseEntity<Map<String, Object>> autocomplete(@RequestParam String term) {
+    public ResponseEntity<Map<String, Object>> autocomplete(@RequestParam("term") String term) {
         log.info("자동완성 요청, 검색어: {}", term);
         Map<String, Object> response = new HashMap<>();
         try {
@@ -153,7 +153,7 @@ public class FlightControllerThree {
     }
 
     @GetMapping("/detail/by-travel-flight/{travelFlightId}")
-    public ResponseEntity<ResponseDto<FlightInfo>> getFlightDetailByTravelFlightId(@PathVariable Long travelFlightId) {
+    public ResponseEntity<ResponseDto<FlightInfo>> getFlightDetailByTravelFlightId(@PathVariable("travelFlightId") Long travelFlightId) {
         log.info("항공편 상세 조회 요청 (TravelFlight ID): travelFlightId = {}", travelFlightId);
         try {
             FlightInfo flightInfo = flightSearchService.getFlightDetailByTravelFlightId(travelFlightId);
@@ -174,6 +174,32 @@ public class FlightControllerThree {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ResponseDto.fail(ErrorCode.INTERNAL_SERVER_ERROR.getCode(),
                             ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
+        }
+    }
+
+    @PostMapping("/book")
+    public ResponseEntity<ResponseDto<?>> bookFlight(
+            @AuthenticationPrincipal Long accountId,
+            @RequestBody AccountFlightRequestDto requestDto) {
+        try {
+            flightSearchService.saveBooking(accountId, requestDto);
+            String complete = "예약이 완료되었습니다.";
+            return ResponseEntity.ok(ResponseDto.success(complete));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ResponseDto.fail("BOOKING_ERROR", "예약 처리 중 오류 발생: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/my-bookings")
+    public ResponseEntity<ResponseDto<List<AccountFlightResponseDto>>> getMyBookings(
+            @AuthenticationPrincipal Long accountId) {
+        try {
+            List<AccountFlightResponseDto> bookings = flightSearchService.getUserBookings(accountId);
+            return ResponseEntity.ok(ResponseDto.success(bookings));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ResponseDto.fail("FETCH_ERROR", "예약 목록 조회 실패: " + e.getMessage()));
         }
     }
 }
