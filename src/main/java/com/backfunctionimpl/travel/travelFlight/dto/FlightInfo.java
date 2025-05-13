@@ -33,4 +33,8 @@ public class FlightInfo implements Serializable {
     private String returnCarrier;
     private String returnCarrierCode;
     private String returnFlightNumber;
+    private String departureTimeZone;
+    private String arrivalTimeZone;
+    private String returnDepartureTimeZone;
+    private String returnArrivalTimeZone;
 }
