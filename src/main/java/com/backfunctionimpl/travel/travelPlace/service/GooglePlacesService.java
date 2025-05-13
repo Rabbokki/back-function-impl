@@ -49,7 +49,8 @@ public class GooglePlacesService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("X-Goog-Api-Key", apiKey);
-        headers.set("X-Goog-FieldMask", "places.displayName,places.formattedAddress,places.photos");
+        headers.set("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.photos");
+
         headers.set("Accept-Language", "ko");
 
         HttpEntity<String> request = new HttpEntity<>(body, headers);
@@ -66,22 +67,24 @@ public class GooglePlacesService {
                 String address = place.path("formattedAddress").asText(null);
                 double rating = 0.0;
 
-                // ✅ 구버전 photo_reference 추출
+                // ✅ placeId 추출
+                String placeId = place.path("id").asText(null);
+
+                // ✅ photoReference → image URL 생성
                 String photoReference = null;
                 if (place.has("photos") && place.get("photos").isArray() && place.get("photos").size() > 0) {
                     JsonNode photo = place.get("photos").get(0);
-                    String photoName = photo.path("name").asText(null); // 예: "places/XXX/photos/YYY"
+                    String photoName = photo.path("name").asText(null);
                     if (photoName != null && photoName.contains("/")) {
-                        // 마지막 부분만 추출
                         photoReference = photoName.substring(photoName.lastIndexOf("/") + 1);
                     }
                 }
 
-                // ✅ 구버전 URL 생성
                 String imageUrl = (photoReference != null)
                         ? String.format("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=%s&key=%s", photoReference, apiKey)
                         : null;
 
+                // ✅ 최종 DTO에 placeId 포함!
                 results.add(new SimplePlaceDto(
                         name,
                         name,
@@ -91,11 +94,30 @@ public class GooglePlacesService {
                         "관광지",
                         city,
                         cityId,
-                        (int)(Math.random() * 1000)
+                        (int)(Math.random() * 1000),
+                        placeId // ← 여기에 반드시 있어야 함!
                 ));
             }
+
         }
 
         return results;
     }
+
+    public JsonNode getPlaceDetail(String placeId) {
+
+        System.out.println("📍 상세조회 요청된 placeId: " + placeId);
+        String url = String.format(
+                "https://maps.googleapis.com/maps/api/place/details/json?place_id=%s&fields=name,formatted_address,international_phone_number,opening_hours,website,rating,user_ratings_total,photos,reviews&language=ko&key=%s",
+                placeId,
+                apiKey
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, request, JsonNode.class);
+
+        return response.getBody().path("result"); // "result" 노드에 상세정보 있음
+    }
+
 }

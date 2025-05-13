@@ -3,6 +3,7 @@ package com.backfunctionimpl.travel.travelPlace.controller;
 import com.backfunctionimpl.travel.travelPlace.dto.SimplePlaceDto;
 import com.backfunctionimpl.travel.travelPlace.service.GooglePlacesService;
 import com.backfunctionimpl.travel.travelPlace.util.CountryCityMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -82,5 +83,12 @@ public class PlacesController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/detail")
+    public ResponseEntity<?> getPlaceDetail(@RequestParam String placeId) {
+        JsonNode detail = googlePlacesService.getPlaceDetail(placeId);
+        return ResponseEntity.ok(detail);
+    }
+
 
 }
