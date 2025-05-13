@@ -31,6 +31,9 @@ public class Account extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
+    private String role;
+
+    @Column(nullable = false)
     private String nickname;
 
     @Column(nullable = false)

@@ -57,7 +57,7 @@ public class CommentController {
         return commentService.deleteByCommentId(id, userDetails.getAccount());
     }
     @GetMapping("/posts/{postId}/comments")
-    public ResponseEntity<?> getCommentsByPostId(@PathVariable Long postId) {
+    public ResponseEntity<?> getCommentsByPostId(@PathVariable("postId") Long postId) {
         log.info("📣 getCommentsByPostId 컨트롤러 진입 - postId: {}", postId);
         List<CommentDto> comments = commentService.getCommentsByPostId(postId); // ← 이거 맞아?
         return ResponseEntity.ok(comments);

@@ -47,6 +47,7 @@ public class AccountService {
         // Account 객체 생성
         Account account = new Account();
         account.setEmail(request.getEmail());
+        account.setRole("USER");
         account.setName(request.getName());
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
@@ -92,7 +93,7 @@ public class AccountService {
         }
 
         // 3. JWT 토큰 생성
-        TokenDto tokenDto = jwtUtil.createAllToken(account.getEmail());
+        TokenDto tokenDto = jwtUtil.createAllToken(account.getEmail(), account.getRole());
 
         // 4. RefreshToken DB 저장
         RefreshToken refreshToken = RefreshToken.builder()

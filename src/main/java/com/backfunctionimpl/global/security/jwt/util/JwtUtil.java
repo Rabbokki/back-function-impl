@@ -57,11 +57,14 @@ public class JwtUtil {
         return token;
     }
     // 토큰 생성
-    public TokenDto createAllToken(String email){
-        return new TokenDto(createToken(email, "Access"), createToken(email, "Refresh"));
+    public TokenDto createAllToken(String email, String role){
+        return new TokenDto(
+                createToken(email, role, "Access"),
+                createToken(email, role, "Refresh")
+        );
     }
 
-    public String createToken(String email, String type) {
+    public String createToken(String email, String role, String type) {
 
         Date date = new Date();
 
@@ -69,6 +72,7 @@ public class JwtUtil {
 
         String token = Jwts.builder()
                 .setSubject(email)
+                .claim("role", role)
                 .setExpiration(new Date(date.getTime() + time))
                 .setIssuedAt(date)
                 .signWith(key, signatureAlgorithm)

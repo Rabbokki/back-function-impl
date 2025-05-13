@@ -3,7 +3,6 @@ package com.backfunctionimpl.account.dto;
 import com.backfunctionimpl.account.entity.Account;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.joda.time.LocalDate;
 
 @Getter
 @AllArgsConstructor
