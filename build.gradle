@@ -66,8 +66,14 @@ dependencies {
     testImplementation 'com.h2database:h2'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'io.github.cdimascio:dotenv-spring-boot:2.2.0'
+
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += '-parameters'
 }

@@ -79,6 +79,8 @@ public class AccountService {
     //로그인
     @Transactional
     public TokenDto login(LoginRequestDto request) {
+
+        System.out.println("🚀 로그인 요청됨: " + request.getEmail());
         // 1. 이메일로 사용자 찾기
         Account account = accountRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
@@ -111,14 +113,19 @@ public class AccountService {
 
 
     //회원정보 조회
-    public AccountResponseDto getMyInfo(@AuthenticationPrincipal UserDetailsImpl userDetails
-                                        ) {
+    public AccountResponseDto getMyInfo(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails == null) {
+            throw new RuntimeException("인증된 사용자 정보가 없습니다. (로그인 필요)");
+        }
+
         String email = userDetails.getAccount().getEmail();
-        Account account = accountRepository.findByEmail(email).orElseThrow(()->
-                new RuntimeException("해당 이메일을 찾을 수 없습니다."));
+
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("해당 이메일을 찾을 수 없습니다."));
 
         return new AccountResponseDto(account);
     }
+
 
     //회원정보 수정
 
