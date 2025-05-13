@@ -116,6 +116,7 @@ public class FlightControllerThree {
             response.put("success", true);
             response.put("data", data);
             response.put("error", null);
+            log.info("Autocomplete response, result count: {}", data.size());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("자동완성 오류: {}", e.getMessage(), e);

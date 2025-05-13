@@ -33,7 +33,7 @@ public class FlightSearchServiceThree {
     private final ObjectMapper objectMapper;
 
     public FlightSearchServiceThree(AmadeusClient amadeusClient, TravelFlightRepository travelFlightRepository,
-                                  TravelPlanRepository travelPlanRepository) {
+                                    TravelPlanRepository travelPlanRepository) {
         this.amadeusClient = amadeusClient;
         this.travelFlightRepository = travelFlightRepository;
         this.travelPlanRepository = travelPlanRepository;
@@ -57,11 +57,15 @@ public class FlightSearchServiceThree {
         boolean isRoundTrip = reqDto.isRealTime() && returnDate != null && !returnDate.isEmpty();
 
         try {
-            // MockFlightData에서 항공편 가져오기
             List<FlightInfo> flights = MockFlightData.getFlights(origin, destination, departureDate, returnDate);
             log.info("Mock 데이터에서 {}개의 항공편 반환", flights.size());
 
-            // 저장 및 travelFlightId 설정
+            if (flights.isEmpty()) {
+                log.warn("항공편 검색 결과 없음: origin={}, destination={}, departureDate={}, returnDate={}",
+                        origin, destination, departureDate, returnDate);
+                throw new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "검색된 항공편이 없습니다. 다른 경로 또는 날짜를 시도해주세요.");
+            }
+
             List<FlightInfo> savedFlights = new ArrayList<>();
             for (FlightInfo flight : flights) {
                 Long travelFlightId = saveFlightForSearch(flight, reqDto);
@@ -70,16 +74,20 @@ public class FlightSearchServiceThree {
             }
 
             if (isRoundTrip && savedFlights.stream().noneMatch(f -> f.getReturnDepartureTime() != null)) {
-                log.warn("왕복 요청이지만 귀국 여정 데이터 없음. 반환된 항공편 수: {}", savedFlights.size());
+                log.warn("왕복 요청이지만 귀국 여정 데이터 없음: origin={}, destination={}, returnDate={}",
+                        origin, destination, returnDate);
+                throw new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "귀국 여정을 찾을 수 없습니다. 다른 날짜를 시도해주세요.");
             }
 
             return FlightSearchResDto.builder()
                     .success(true)
                     .flights(savedFlights)
                     .build();
+        } catch (CustomException e) {
+            throw e;
         } catch (Exception e) {
             log.error("항공편 검색 실패: {}", e.getMessage(), e);
-            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "항공편 검색에 실패했습니다.");
+            throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR, "항공편 검색에 실패했습니다: " + e.getMessage());
         }
     }
 
@@ -88,32 +96,8 @@ public class FlightSearchServiceThree {
         Optional<TravelFlight> travelFlightOpt = travelFlightRepository.findByFlightId(flightId);
         if (travelFlightOpt.isPresent()) {
             TravelFlight travelFlight = travelFlightOpt.get();
-            FlightInfo flightInfo = new FlightInfo();
-            flightInfo.setId(flightId);
-            flightInfo.setTravelFlightId(travelFlight.getId());
-            flightInfo.setCarrier(travelFlight.getAirlines());
-            flightInfo.setCarrierCode(mapCarrierNameToCode(travelFlight.getAirlines()));
-            flightInfo.setDepartureAirport(travelFlight.getDepartureAirport());
-            flightInfo.setArrivalAirport(travelFlight.getArrivalAirport());
-            flightInfo.setDepartureTime(travelFlight.getDepartureTime().toString());
-            flightInfo.setArrivalTime(travelFlight.getArrivalTime().toString());
-            flightInfo.setPrice(travelFlight.getPrice() != null ? travelFlight.getPrice() : "250000");
-            flightInfo.setCurrency(travelFlight.getCurrency() != null ? travelFlight.getCurrency() : "KRW");
-            flightInfo.setDuration(calculateDuration(travelFlight.getDepartureTime(), travelFlight.getArrivalTime()));
-            flightInfo.setNumberOfBookableSeats(50);
-            flightInfo.setFlightNumber(travelFlight.getFlightNumber());
-            flightInfo.setCabinBaggage(travelFlight.getCabinBaggage() != null ? travelFlight.getCabinBaggage() : "Weight: 20kg");
-            if (travelFlight.getReturnDepartureTime() != null) {
-                flightInfo.setReturnDepartureTime(travelFlight.getReturnDepartureTime().toString());
-                flightInfo.setReturnArrivalTime(travelFlight.getReturnArrivalTime().toString());
-                flightInfo.setReturnDepartureAirport(travelFlight.getReturnDepartureAirport());
-                flightInfo.setReturnArrivalAirport(travelFlight.getReturnArrivalAirport());
-                flightInfo.setReturnDuration(calculateDuration(travelFlight.getReturnDepartureTime(), travelFlight.getReturnArrivalTime()));
-                flightInfo.setReturnCarrier(travelFlight.getAirlines());
-                flightInfo.setReturnCarrierCode(mapCarrierNameToCode(travelFlight.getAirlines()));
-                flightInfo.setReturnFlightNumber(travelFlight.getFlightNumber());
-            }
-            log.info("DB에서 항공편 조회 성공: flightId = {}", flightId);
+            FlightInfo flightInfo = buildFlightInfo(travelFlight);
+            log.info("DB에서 항공편 조회 성공: flightId = {}, travelFlightId = {}", flightId, flightInfo.getTravelFlightId());
             return flightInfo;
         }
 
@@ -126,12 +110,21 @@ public class FlightSearchServiceThree {
         Optional<TravelFlight> travelFlightOpt = travelFlightRepository.findById(travelFlightId);
         if (travelFlightOpt.isEmpty()) {
             log.warn("DB에서 항공편을 찾을 수 없음: TravelFlight ID = {}", travelFlightId);
+            List<TravelFlight> allFlights = travelFlightRepository.findAll();
+            log.debug("현재 TravelFlight 테이블 상태: {}개 레코드", allFlights.size());
+            allFlights.forEach(flight -> log.debug("TravelFlight: id={}, flightId={}", flight.getId(), flight.getFlightId()));
             throw new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "항공편을 찾을 수 없습니다: TravelFlight ID = " + travelFlightId);
         }
         TravelFlight travelFlight = travelFlightOpt.get();
         log.debug("조회된 TravelFlight 데이터: id={}, flightId={}, airlines={}, departureTime={}",
                 travelFlight.getId(), travelFlight.getFlightId(), travelFlight.getAirlines(),
                 travelFlight.getDepartureTime());
+        FlightInfo flightInfo = buildFlightInfo(travelFlight);
+        log.info("FlightInfo 생성 완료: flightId={}, travelFlightId={}", flightInfo.getId(), flightInfo.getTravelFlightId());
+        return flightInfo;
+    }
+
+    private FlightInfo buildFlightInfo(TravelFlight travelFlight) {
         FlightInfo flightInfo = new FlightInfo();
         flightInfo.setId(travelFlight.getFlightId());
         flightInfo.setTravelFlightId(travelFlight.getId());
@@ -143,9 +136,9 @@ public class FlightSearchServiceThree {
         flightInfo.setDepartureTime(travelFlight.getDepartureTime().toString());
         flightInfo.setArrivalTime(travelFlight.getArrivalTime().toString());
         flightInfo.setDuration(calculateDuration(travelFlight.getDepartureTime(), travelFlight.getArrivalTime()));
-        flightInfo.setPrice(travelFlight.getPrice().toString());
-        flightInfo.setCurrency(travelFlight.getCurrency());
-        flightInfo.setCabinBaggage(travelFlight.getCabinBaggage());
+        flightInfo.setPrice(travelFlight.getPrice() != null ? travelFlight.getPrice() : "250000");
+        flightInfo.setCurrency(travelFlight.getCurrency() != null ? travelFlight.getCurrency() : "KRW");
+        flightInfo.setCabinBaggage(travelFlight.getCabinBaggage() != null ? travelFlight.getCabinBaggage() : "Weight: 20kg");
         flightInfo.setNumberOfBookableSeats(50);
         if (travelFlight.getReturnDepartureTime() != null) {
             flightInfo.setReturnDepartureTime(travelFlight.getReturnDepartureTime().toString());
@@ -160,22 +153,14 @@ public class FlightSearchServiceThree {
                     flightInfo.getReturnDepartureAirport(), flightInfo.getReturnArrivalAirport(),
                     flightInfo.getReturnDepartureTime(), flightInfo.getReturnArrivalTime());
         }
-        log.info("FlightInfo 생성 완료: flightId={}", flightInfo.getId());
         return flightInfo;
     }
 
     private Long saveFlightForSearch(FlightInfo flightInfo, FlightSearchReqDto reqDto) {
         log.info("항공편 저장 요청: flightId={}", flightInfo.getId());
         Optional<TravelPlan> travelPlanOpt = travelPlanRepository.findFirstByOrderByIdDesc();
-        if (travelPlanOpt.isEmpty()) {
-            log.warn("여행 계획 없음, 기본 여행 계획 생성");
-            TravelPlan travelPlan = new TravelPlan();
-            travelPlan.setCreatedAt(LocalDateTime.now());
-            travelPlan.setUpdatedAt(LocalDateTime.now());
-            travelPlan = travelPlanRepository.save(travelPlan);
-        }
-
         TravelPlan travelPlan = travelPlanOpt.orElseGet(() -> {
+            log.warn("여행 계획 없음, 기본 여행 계획 생성");
             TravelPlan newPlan = new TravelPlan();
             newPlan.setCreatedAt(LocalDateTime.now());
             newPlan.setUpdatedAt(LocalDateTime.now());
@@ -225,7 +210,8 @@ public class FlightSearchServiceThree {
         FlightSearchResDto result = searchFlights(reqDto);
         if (result.getFlights().isEmpty()) {
             log.error("항공편 검색 결과 없음: {}", reqDto);
-            throw new CustomException(ErrorCode.INVALID_FLIGHT_SEARCH);
+            throw new CustomException(
+                    ErrorCode.INVALID_FLIGHT_SEARCH);
         }
 
         TravelPlan travelPlan = travelPlanRepository.findById(travelPlanId)
@@ -332,4 +318,44 @@ public class FlightSearchServiceThree {
         carrierMap.put("BA", "British Airways");
         return carrierMap.getOrDefault(carrierCode, "Unknown Airline");
     }
+
+
+//    static class MockFlightData {
+//        public static List<FlightInfo> getFlights(String origin, String destination, String departureDate, String returnDate) {
+//            List<FlightInfo> flights = new ArrayList<>();
+//            FlightInfo flight = new FlightInfo();
+//            flight.setId(String.format("FL001-%s-%s-RT", origin, destination));
+//            flight.setTravelFlightId(5L);
+//            flight.setCarrier("대한항공");
+//            flight.setCarrierCode("KE");
+//            flight.setFlightNumber("KE123");
+//            flight.setDepartureAirport(origin);
+//            flight.setArrivalAirport(destination);
+//            flight.setDepartureTime(LocalDateTime.parse(departureDate + "T10:00:00").toString());
+//            flight.setArrivalTime(LocalDateTime.parse(departureDate + "T11:15:00").toString());
+//            flight.setDepartureTimeZone(origin.equals("LHR") ? "Europe/London" : "Europe/Paris");
+//            flight.setArrivalTimeZone(destination.equals("CDG") ? "Europe/Paris" : "Europe/London");
+//            flight.setDuration("PT1H15M");
+//            flight.setPrice("1200000");
+//            flight.setCurrency("KRW");
+//            flight.setCabinBaggage("Weight: 20kg");
+//            flight.setNumberOfBookableSeats(50);
+//            if (returnDate != null && !returnDate.isEmpty()) {
+//                flight.setReturnDepartureTime(LocalDateTime.parse(returnDate + "T08:00:00").toString());
+//                flight.setReturnArrivalTime(LocalDateTime.parse(returnDate + "T09:15:00").toString());
+//                flight.setReturnDepartureTimeZone(destination.equals("CDG") ? "Europe/Paris" : "Europe/London");
+//                flight.setReturnArrivalTimeZone(origin.equals("LHR") ? "Europe/London" : "Europe/Paris");
+//                flight.setReturnDepartureAirport(destination);
+//                flight.setReturnArrivalAirport(origin);
+//                flight.setReturnDuration("PT1H15M");
+//                flight.setReturnCarrier("대한항공");
+//                flight.setReturnCarrierCode("KE");
+//                flight.setReturnFlightNumber("KE124");
+//            }
+//            flights.add(flight);
+//            log.info("MockFlightData: 생성된 항공편 - id={}, travelFlightId={}, origin={}, destination={}",
+//                    flight.getId(), flight.getTravelFlightId(), origin, destination);
+//            return flights;
+//        }
+
 }
