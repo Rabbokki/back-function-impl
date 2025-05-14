@@ -10,6 +10,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,14 +28,33 @@ public class PlacesController {
 
     @GetMapping("/nearby")
     public ResponseEntity<?> getNearbyPlaces(
-            @RequestParam(name = "lat") double lat,
-            @RequestParam(name = "lng") double lng,
+            @RequestParam(name = "lat", required = false) Double lat,
+            @RequestParam(name = "lng", required = false) Double lng,
             @RequestParam(name = "city") String city,
             @RequestParam(name = "cityId") String cityId
     ) {
+        if ("all".equals(cityId)) {
+            List<SimplePlaceDto> total = new ArrayList<>();
+
+            Map<String, double[]> cityMap = CountryCityMapper.getAllCities(); 
+
+            for (Map.Entry<String, double[]> entry : cityMap.entrySet()) {
+                String id = entry.getKey();
+                double[] coords = entry.getValue();
+                List<SimplePlaceDto> results = googlePlacesService.searchNearbyPlaces(
+                        coords[0], coords[1], id, id
+                );
+                total.addAll(results);
+            }
+
+            return ResponseEntity.ok(total);
+        }
+
+        // 기존 처리
         List<SimplePlaceDto> result = googlePlacesService.searchNearbyPlaces(lat, lng, city, cityId);
         return ResponseEntity.ok(result);
     }
+
 
     @GetMapping("/search")
     public ResponseEntity<?> searchByKeyword(@RequestParam("keyword") String keyword) {
@@ -60,19 +80,20 @@ public class PlacesController {
     }
 
     @GetMapping("/photo")
-    public ResponseEntity<byte[]> getPhoto(@RequestParam("name") String photoName) {
+    public ResponseEntity<byte[]> getPhoto(@RequestParam("photo_reference") String photoReference) {
         try {
-
-            String url = "https://places.googleapis.com/v1/" + photoName + "/media?key=" + apiKey;
-
+            String url = "https://maps.googleapis.com/maps/api/place/photo" +
+                    "?maxwidth=400" +
+                    "&photo_reference=" + photoReference +
+                    "&key=" + apiKey;
 
             HttpHeaders headers = new HttpHeaders();
-            headers.set("X-Goog-Api-Key", apiKey);
-            System.out.println("✅ key = " + apiKey);
             headers.setAccept(List.of(MediaType.IMAGE_JPEG));
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<byte[]> response = restTemplate.exchange(url, HttpMethod.GET, entity, byte[].class);
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, byte[].class
+            );
 
             return ResponseEntity.ok()
                     .contentType(MediaType.IMAGE_JPEG)
@@ -84,11 +105,14 @@ public class PlacesController {
         }
     }
 
+
+
     @GetMapping("/detail")
-    public ResponseEntity<?> getPlaceDetail(@RequestParam String placeId) {
+    public ResponseEntity<?> getPlaceDetail(@RequestParam("placeId") String placeId) {
         JsonNode detail = googlePlacesService.getPlaceDetail(placeId);
         return ResponseEntity.ok(detail);
     }
+
 
 
 }

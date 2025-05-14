@@ -29,63 +29,37 @@ public class GooglePlacesService {
     }
 
     public List<SimplePlaceDto> searchNearbyPlaces(double lat, double lng, String city, String cityId) {
-        String url = "https://places.googleapis.com/v1/places:searchNearby";
-
-        String body = String.format("""
-        {
-          "includedTypes": ["tourist_attraction"],
-          "locationRestriction": {
-            "circle": {
-              "center": {
-                "latitude": %f,
-                "longitude": %f
-              },
-              "radius": 3000.0
-            }
-          }
-        }
-        """, lat, lng);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-Goog-Api-Key", apiKey);
-        headers.set("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.photos");
-
-        headers.set("Accept-Language", "ko");
-
-        HttpEntity<String> request = new HttpEntity<>(body, headers);
-        ResponseEntity<JsonNode> response = restTemplate.exchange(
-                url, HttpMethod.POST, request, JsonNode.class
+        String url = String.format(
+                "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=%f,%f&radius=4000&type=tourist_attraction&language=ko&key=%s",
+                lat, lng, apiKey
         );
 
-        JsonNode places = response.getBody().get("places");
-        List<SimplePlaceDto> results = new ArrayList<>();
+        ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
 
-        if (places != null && places.isArray()) {
-            for (JsonNode place : places) {
-                String name = place.path("displayName").path("text").asText(null);
-                String address = place.path("formattedAddress").asText(null);
-                double rating = 0.0;
+        JsonNode results = response.getBody().path("results");
+        System.out.println("✅ 구글 Nearby 결과: " + results);
 
-                // ✅ placeId 추출
-                String placeId = place.path("id").asText(null);
+        List<SimplePlaceDto> places = new ArrayList<>();
 
-                // ✅ photoReference → image URL 생성
-                String photoReference = null;
-                if (place.has("photos") && place.get("photos").isArray() && place.get("photos").size() > 0) {
-                    JsonNode photo = place.get("photos").get(0);
-                    String photoName = photo.path("name").asText(null);
-                    if (photoName != null && photoName.contains("/")) {
-                        photoReference = photoName.substring(photoName.lastIndexOf("/") + 1);
-                    }
+        if (results != null && results.isArray()) {
+            for (JsonNode node : results) {
+                String name = node.path("name").asText(null);
+                String address = node.path("vicinity").asText(null);
+                double rating = node.path("rating").asDouble(0);
+                int reviewCount = node.path("user_ratings_total").asInt(0); // ✅ 리뷰 수
+                String placeId = node.path("place_id").asText(null);
+
+                String photoRef = null;
+                if (node.has("photos") && node.get("photos").isArray() && node.get("photos").size() > 0) {
+                    photoRef = node.get("photos").get(0).path("photo_reference").asText(null);
                 }
 
-                String imageUrl = (photoReference != null)
-                        ? String.format("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=%s&key=%s", photoReference, apiKey)
+                String imageUrl = (photoRef != null)
+                        ? String.format("https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=%s&key=%s", photoRef, apiKey)
                         : null;
 
-                // ✅ 최종 DTO에 placeId 포함!
-                results.add(new SimplePlaceDto(
+                // ✅ reviewCount 반영
+                places.add(new SimplePlaceDto(
                         name,
                         name,
                         address,
@@ -94,21 +68,23 @@ public class GooglePlacesService {
                         "관광지",
                         city,
                         cityId,
-                        (int)(Math.random() * 1000),
-                        placeId // ← 여기에 반드시 있어야 함!
+                        reviewCount,
+                        placeId
                 ));
             }
-
+            places.sort((a, b) -> Integer.compare(b.getReviewCount(), a.getReviewCount()));
         }
 
-        return results;
+        return places;
     }
+
+
 
     public JsonNode getPlaceDetail(String placeId) {
 
         System.out.println("📍 상세조회 요청된 placeId: " + placeId);
         String url = String.format(
-                "https://maps.googleapis.com/maps/api/place/details/json?place_id=%s&fields=name,formatted_address,international_phone_number,opening_hours,website,rating,user_ratings_total,photos,reviews&language=ko&key=%s",
+                "https://maps.googleapis.com/maps/api/place/details/json?place_id=%s&fields=name,formatted_address,formatted_phone_number,international_phone_number,editorial_summary,opening_hours,website,rating,user_ratings_total,photos,reviews&language=ko&key=%s",
                 placeId,
                 apiKey
         );
