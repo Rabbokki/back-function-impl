@@ -24,6 +24,7 @@ public class Account extends BaseEntity {
     @Column(name = "account_id")
     private Long id;
 
+
     @Column(nullable = false)
     private String email;
 
@@ -88,4 +89,10 @@ public class Account extends BaseEntity {
         this.providerId = providerId;
         this.password = "SOCIAL_LOGIN";
     }
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role = Role.USER; // 기본값 USER
+
 }

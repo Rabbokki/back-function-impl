@@ -16,5 +16,6 @@ public class SimplePlaceDto {
     private String category;
     private String city;
     private String cityId;
-    private int likes;
+    private int reviewCount;
+    private String placeId;
 }

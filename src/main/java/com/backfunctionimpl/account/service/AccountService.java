@@ -3,6 +3,7 @@ package com.backfunctionimpl.account.service;
 import com.backfunctionimpl.account.dto.*;
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.RefreshToken;
+import com.backfunctionimpl.account.entity.Role;
 import com.backfunctionimpl.account.entity.TravelLevel;
 import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.account.repository.RefreshTokenRepository;
@@ -54,6 +55,7 @@ public class AccountService {
         account.setBirthday(request.getBirthday());
         account.setBio(request.getBio());
         account.setGender(request.getGender());
+        account.setRole(Role.USER);
 
        //  프로필 이미지 업로드 처리 (예: S3 업로드 or 로컬 저장)
         if (profileImage != null && !profileImage.isEmpty()) {

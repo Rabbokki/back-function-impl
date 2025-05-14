@@ -26,8 +26,7 @@ public class CountryCityMapper {
         return Optional.ofNullable(CITY_MAP.get(city.trim()));
     }
 
-    // 디버깅용: 현재 등록된 키들을 모두 출력
-    public static Set<String> getAvailableCities() {
-        return CITY_MAP.keySet();
+    public static Map<String, double[]> getAllCities() {
+        return CITY_MAP;
     }
 }
