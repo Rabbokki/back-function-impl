@@ -50,13 +50,11 @@ public class AccountService {
         account.setEmail(request.getEmail());
         account.setRole("USER");
         account.setName(request.getName());
-        account.setRole("USER");
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setNickname(request.getNickname());
         account.setBirthday(request.getBirthday());
         account.setBio(request.getBio());
         account.setGender(request.getGender());
-        account.setRole(Role.USER);
 
        //  프로필 이미지 업로드 처리 (예: S3 업로드 or 로컬 저장)
         if (profileImage != null && !profileImage.isEmpty()) {

@@ -95,9 +95,4 @@ public class Account extends BaseEntity {
         this.password = "SOCIAL_LOGIN";
     }
 
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.USER; // 기본값 USER
-
 }
