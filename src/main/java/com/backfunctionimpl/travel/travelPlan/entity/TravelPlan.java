@@ -7,12 +7,16 @@ import com.backfunctionimpl.travel.travelFlight.entity.TravelFlight;
 import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
 import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportation;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
 public class TravelPlan extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

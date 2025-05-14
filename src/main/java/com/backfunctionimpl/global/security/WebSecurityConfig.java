@@ -69,6 +69,7 @@ public class WebSecurityConfig {
 //                        .requestMatchers("/account/signup").permitAll()
                         .requestMatchers("/account/**").permitAll()
                         .requestMatchers("/file/**").permitAll()
+                        .requestMatchers("/api/travel-plans/**").authenticated()
                         .requestMatchers("/api/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
 //                       .requestMatchers("/post/create").permitAll()
