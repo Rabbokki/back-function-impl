@@ -12,6 +12,7 @@ public class AccountResponseDto {
     private Long id;
     private String email;
     private String nickname;
+    public String role;
     private String imgUrl;
     private String bio;
     private String gender;
@@ -24,6 +25,7 @@ public class AccountResponseDto {
         this.id = account.getId();
         this.email = account.getEmail();
         this.nickname = account.getNickname();
+        this.role = account.getRole();
         this.imgUrl = account.getImgUrl();
         this.bio = account.getBio();
         this.gender = account.getGender();

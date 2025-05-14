@@ -34,6 +34,7 @@ public class AdminService {
                         account.getId(),
                         account.getEmail(),
                         account.getNickname(),
+                        account.getRole(),
                         account.getImgUrl(),
                         account.getBio(),
                         account.getGender(),
