@@ -1,9 +1,7 @@
 package com.backfunctionimpl.review.entity;
 
-
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.BaseEntity;
-import com.backfunctionimpl.post.entity.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,14 +11,15 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Table(name = "review")
 public class Review extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    private Post post;
+    @Column(name = "place_id", nullable = false)
+    private String placeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
@@ -32,11 +31,12 @@ public class Review extends BaseEntity {
     @Column(length = 500)
     private String nickname;
 
-    @Column(length = 500)
+    @Column(length = 1000)
     private String content;
 
-    public Review(Post post, Account account, int rating, String nickname, String content) {
-        this.post = post;
+
+    public Review(String placeId, Account account, int rating, String nickname, String content) {
+        this.placeId = placeId;
         this.account = account;
         this.rating = rating;
         this.nickname = nickname;

@@ -1,10 +1,8 @@
 package com.backfunctionimpl.review.service;
 
-
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.global.dto.ResponseDto;
-import com.backfunctionimpl.post.entity.Post;
-import com.backfunctionimpl.post.repository.PostRepository;
+import com.backfunctionimpl.review.dto.ReviewDto;
 import com.backfunctionimpl.review.dto.ReviewSummaryDto;
 import com.backfunctionimpl.review.entity.Review;
 import com.backfunctionimpl.review.repository.ReviewRepository;
@@ -18,122 +16,50 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
+
     private final ReviewRepository reviewRepository;
-    private final PostRepository postRepository;
 
+    // ✅ 1. placeId로 리뷰 목록 조회
     @Transactional(readOnly = true)
-    public ResponseDto<?> getReviewsByPostId(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+    public ResponseDto<?> getReviewsByPlaceId(String placeId) {
+        List<Review> reviewEntities = reviewRepository.findWithAccountByPlaceId(placeId);
 
-        // Convert each Review entity to a ReviewSummaryDto
-        List<ReviewSummaryDto> reviewDtos = reviewRepository.findByPost(post).stream()
-                .map(ReviewSummaryDto::new)
-                .toList();
-
-        return ResponseDto.success(reviewDtos);
-    }
-
-    @Transactional
-    public ResponseDto<?> addOrUpdateReview(Long postId, Account account, int rating, String content) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
-        Review review = new Review(post, account, rating, account.getNickname(), content);
-        reviewRepository.save(review);
-        post.setReviewSize(post.getReviewSize() + 1);
-        post.setTotalRating(post.getTotalRating() + rating);
-        post.recalculateAverageRating();
-        postRepository.save(post);
-
-        return ResponseDto.success(review);
-    }
-
-    @Transactional
-    public ResponseDto<?> removeReview(Long postId, Account account) {
-        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
-        Optional<Review> existingReview = reviewRepository.findByPostAndAccount(post, account);
-
-        if (existingReview.isEmpty()) {
-            return ResponseDto.fail("100", "Review not found");
+        // ✅ 여기 디버깅용 출력 추가
+        System.out.println("💬 리뷰 수: " + reviewEntities.size());
+        for (Review r : reviewEntities) {
+            System.out.println("⭐ " + r.getAccount().getNickname() + ": " + r.getContent());
         }
 
-        reviewRepository.delete(existingReview.get());
-        post.setReviewSize(post.getReviewSize() - 1);
-//        post.setTotalRating(post.getTotalRating() - rating);
-        post.recalculateAverageRating();
-        postRepository.save(post);
-        return ResponseDto.success("Review removed successfully");
+        List<ReviewSummaryDto> reviews = reviewEntities.stream()
+                .map(ReviewSummaryDto::new)
+                .toList();
+        return ResponseDto.success(reviews);
+    }
+    // ✅ 2. 리뷰 등록
+    @Transactional
+    public ResponseDto<?> addPlaceReview(ReviewDto dto, Account account) {
+        Review review = new Review(
+                dto.getPlaceId(),
+                account,
+                dto.getRating(),
+                account.getNickname(),
+                dto.getContent()
+        );
+
+        reviewRepository.save(review);
+        return ResponseDto.success("리뷰가 등록되었습니다.");
     }
 
+    // ✅ 3. 리뷰 삭제
+    @Transactional
+    public ResponseDto<?> removeReview(String placeId, Account account) {
+        Optional<Review> review = reviewRepository.findByPlaceIdAndAccount(placeId, account);
 
+        if (review.isEmpty()) {
+            return ResponseDto.fail("404", "작성한 리뷰가 존재하지 않습니다.");
+        }
+
+        reviewRepository.delete(review.get());
+        return ResponseDto.success("리뷰가 삭제되었습니다.");
+    }
 }
-
-//package com.backfunctionimpl.review.service;
-//
-//
-//import com.backendfunction.account.entity.Account;
-//import com.backendfunction.global.dto.ResponseDto;
-//import com.backendfunction.post.entity.Post;
-//import com.backendfunction.post.repository.PostRepository;
-//import com.backendfunction.review.dto.ReviewSummaryDto;
-//import com.backendfunction.review.entity.Review;
-//import com.backendfunction.review.repository.ReviewRepository;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.stereotype.Service;
-//import org.springframework.transaction.annotation.Transactional;
-//
-//import java.util.List;
-//import java.util.Optional;
-//
-//@Service
-//@RequiredArgsConstructor
-//public class ReviewService {
-//    private final ReviewRepository reviewRepository;
-//    private final PostRepository postRepository;
-//
-//    @Transactional(readOnly = true)
-//    public ResponseDto<?> getReviewsByPostId(Long postId) {
-//        Post post = postRepository.findById(postId)
-//                .orElseThrow(() -> new RuntimeException("Post not found"));
-//
-//        // Convert each Review entity to a ReviewSummaryDto
-//        List<ReviewSummaryDto> reviewDtos = reviewRepository.findByPost(post).stream()
-//                .map(ReviewSummaryDto::new)
-//                .toList();
-//
-//        return ResponseDto.success(reviewDtos);
-//    }
-//
-//    @Transactional
-//    public ResponseDto<?> addOrUpdateReview(Long postId, Account account, int rating, String content) {
-//        Post post = postRepository.findById(postId)
-//                .orElseThrow(() -> new RuntimeException("Post not found"));
-//
-//        Review review = new Review(post, account, rating, account.getNickname(), content);
-//        reviewRepository.save(review);
-//        post.setReviewSize(post.getReviewSize() + 1);
-//        post.recalculateAverageRating();
-//        postRepository.save(post);
-//
-//        return ResponseDto.success(review);
-//    }
-//
-//    @Transactional
-//    public ResponseDto<?> removeReview(Long postId, Account account) {
-//        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
-//        Optional<Review> existingReview = reviewRepository.findByPostAndAccount(post, account);
-//
-//        if (existingReview.isEmpty()) {
-//            return ResponseDto.fail("100", "Review not found");
-//        }
-//
-//        reviewRepository.delete(existingReview.get());
-//        post.setReviewSize(post.getReviewSize() - 1);
-//        post.recalculateAverageRating();
-//        postRepository.save(post);
-//        return ResponseDto.success("Review removed successfully");
-//    }
-//
-//
-

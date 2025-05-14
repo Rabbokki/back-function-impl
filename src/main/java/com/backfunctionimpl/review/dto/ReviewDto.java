@@ -1,4 +1,5 @@
 package com.backfunctionimpl.review.dto;
+
 import com.backfunctionimpl.review.entity.Review;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReviewDto {
     private Long id;
-    private Long postId;
+    private String placeId;
     private Long accountId;
     private int rating;
     private String nickname;
@@ -17,10 +18,10 @@ public class ReviewDto {
 
     public ReviewDto(Review review) {
         this.id = review.getId();
-        this.postId = review.getPost().getId();
+        this.placeId = review.getPlaceId();
         this.accountId = review.getAccount().getId();
         this.rating = review.getRating();
-        this.nickname = review.getAccount().getNickname();
+        this.nickname = review.getNickname();
         this.content = review.getContent();
     }
 }

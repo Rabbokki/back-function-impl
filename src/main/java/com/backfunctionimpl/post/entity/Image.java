@@ -24,6 +24,7 @@ public class Image extends BaseEntity {
 
     @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+//    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
 }

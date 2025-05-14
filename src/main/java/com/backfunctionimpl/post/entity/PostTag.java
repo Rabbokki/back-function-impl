@@ -19,7 +19,7 @@ public class PostTag {
     private String tagName; // 태그 이름
 
     @ManyToOne
-    @JoinColumn(name = "post_id")
+//    @JoinColumn(name = "post_id")
     private Post post; // 어떤 게시글에 연결된 태그인지
 
     @ManyToOne

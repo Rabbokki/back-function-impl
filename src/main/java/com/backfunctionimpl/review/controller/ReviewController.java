@@ -7,85 +7,51 @@ import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import com.backfunctionimpl.review.dto.ReviewDto;
 import com.backfunctionimpl.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/reviews")
+@RequestMapping("/api/reviews")
 public class ReviewController {
-    private final AccountRepository accountRepository;
-    private final ReviewService reviewService;
 
-    @GetMapping("/{postId}")
-    public ResponseDto<?> getReviewsByPostId(@PathVariable("postId") Long postId) {
-        return reviewService.getReviewsByPostId(postId);
+    private final ReviewService reviewService;
+    private final AccountRepository accountRepository;
+
+    // ✅ 1. placeId로 리뷰 목록 조회
+    @GetMapping
+    public ResponseDto<?> getReviews(@RequestParam("placeId") String placeId) {
+        System.out.println("📥 받은 placeId: " + placeId);
+        return reviewService.getReviewsByPlaceId(placeId);
     }
 
-    @PostMapping("/{postId}")
-    public ResponseDto<?> addOrUpdateReview(@PathVariable("postId") Long postId,
-                                            @RequestBody ReviewDto reviewDTO,
-                                            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        System.out.println("Received reviewDTO: " + reviewDTO);
-        if (reviewDTO.getAccountId() == null) {
-            return ResponseDto.fail("400", "Account ID is required");
+    // ✅ 2. 리뷰 작성
+    @PostMapping
+    public ResponseDto<?> addReview(@RequestBody ReviewDto dto) {
+        Account account = accountRepository.findById(dto.getAccountId())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        return reviewService.addPlaceReview(dto, account);
+    }
+
+    // ✅ 3. 본인 리뷰 삭제
+    @DeleteMapping
+    public ResponseDto<?> deleteReview(@RequestParam("placeId") String placeId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseDto.fail("401", "로그인이 필요합니다.");
         }
 
-        Account account = accountRepository.findById(reviewDTO.getAccountId())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        String email = authentication.getName(); // email 또는 username
+        Account account = accountRepository.findByEmail(email).orElse(null);
 
-        return reviewService.addOrUpdateReview(postId, account, reviewDTO.getRating(), reviewDTO.getContent());
-    }
+        if (account == null) {
+            return ResponseDto.fail("404", "회원 정보를 찾을 수 없습니다.");
+        }
 
-    @DeleteMapping("/{postId}")
-    public ResponseDto<?> removeReview(@PathVariable("postId") Long postId,
-                                       @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return reviewService.removeReview(postId, userDetails.getAccount());
+        return reviewService.removeReview(placeId, account);
     }
 
 }
-//package com.backfunctionimpl.review.controller;
-//
-//import com.backendfunction.account.entity.Account;
-//import com.backendfunction.account.repository.AccountRepository;
-//import com.backendfunction.global.dto.ResponseDto;
-//import com.backendfunction.global.security.user.UserDetailsImpl;
-//import com.backendfunction.review.dto.ReviewDTO;
-//import com.backendfunction.review.service.ReviewService;
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.security.core.annotation.AuthenticationPrincipal;
-//import org.springframework.web.bind.annotation.*;
-//
-//@RestController
-//@RequiredArgsConstructor
-//@RequestMapping("/reviews")
-//public class ReviewController {
-//    private final AccountRepository accountRepository;
-//    private final ReviewService reviewService;
-//
-//    @GetMapping("/{postId}")
-//    public ResponseDto<?> getReviewsByPostId(@PathVariable("postId") Long postId) {
-//        return reviewService.getReviewsByPostId(postId);
-//    }
-//
-//    @PostMapping("/{postId}")
-//    public ResponseDto<?> addOrUpdateReview(@PathVariable("postId") Long postId,
-//                                            @RequestBody ReviewDTO reviewDTO,
-//                                            @AuthenticationPrincipal UserDetailsImpl userDetails) {
-//        System.out.println("Received reviewDTO: " + reviewDTO);
-//        if (reviewDTO.getAccountId() == null) {
-//            return ResponseDto.fail("400", "Account ID is required");
-//        }
-//
-//        Account account = accountRepository.findById(reviewDTO.getAccountId())
-//                .orElseThrow(() -> new RuntimeException("Account not found"));
-//
-//        return reviewService.addOrUpdateReview(postId, account, reviewDTO.getRating(), reviewDTO.getContent());
-//    }
-//
-//    @DeleteMapping("/{postId}")
-//    public ResponseDto<?> removeReview(@PathVariable("postId") Long postId,
-//                                       @AuthenticationPrincipal UserDetailsImpl userDetails) {
-//        return reviewService.removeReview(postId, userDetails.getAccount());
-//    }
-//
