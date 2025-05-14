@@ -33,9 +33,6 @@ public class Account extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
-    private String role;
-
-    @Column(nullable = false)
     private String nickname;
 
     @Column(nullable = false)
@@ -46,6 +43,10 @@ public class Account extends BaseEntity {
 
     private String provider;
     private String providerId;
+
+
+    @Column(nullable = false)
+    private String role;
 
     private String bio;
 
@@ -75,7 +76,6 @@ public class Account extends BaseEntity {
     private int levelExp = 0;  // 기본 0
 
 
-
     //  현재 레벨 계산
     public TravelLevel getLevel() {
         return TravelLevel.findByExp(this.levelExp);
@@ -94,5 +94,6 @@ public class Account extends BaseEntity {
         this.providerId = providerId;
         this.password = "SOCIAL_LOGIN";
     }
+
 
 }
