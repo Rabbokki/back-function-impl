@@ -2,8 +2,7 @@ package com.backfunctionimpl.travel.travelFlight.entity;
 
 import com.backfunctionimpl.account.entity.Account;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +10,9 @@ import java.time.LocalDateTime;
 @Table(name = "account_flight")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AccountFlight {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

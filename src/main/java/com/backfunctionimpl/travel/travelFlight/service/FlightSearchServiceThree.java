@@ -18,6 +18,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,7 +70,6 @@ public class FlightSearchServiceThree {
 
         try {
             long startTime = System.currentTimeMillis();
-            // Mock 데이터 조회
             List<FlightInfo> flights = MockFlightData.getFlights(origin, destination, departureDate, returnDate);
             log.info("Mock 데이터에서 {}개의 항공편 반환, 소요 시간: {}ms", flights.size(), System.currentTimeMillis() - startTime);
 
@@ -78,7 +79,6 @@ public class FlightSearchServiceThree {
                 throw new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "검색된 항공편이 없습니다. 다른 경로 또는 날짜를 시도해주세요.");
             }
 
-            // 항공편 저장
             List<FlightInfo> savedFlights = new ArrayList<>();
             startTime = System.currentTimeMillis();
             for (FlightInfo flight : flights) {
@@ -336,34 +336,67 @@ public class FlightSearchServiceThree {
         carrierMap.put("BA", "British Airways");
         return carrierMap.getOrDefault(carrierCode, "Unknown Airline");
     }
+
     @Transactional
     public void saveBooking(Long accountId, AccountFlightRequestDto requestDto) {
         log.info("예약 저장 요청: accountId={}, flightId={}", accountId, requestDto.getFlightId());
 
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_USER, "사용자를 찾을 수 없습니다."));
+        // accountId 검증
+        if (accountId == null) {
+            log.error("accountId가 null입니다. SecurityContext에서 사용자 정보를 확인합니다.");
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+            log.info("Extracted email from SecurityContext: {}", email);
+            Account accountByEmail = accountRepository.findByEmail(email)
+                    .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_USER, "사용자를 찾을 수 없습니다: " + email));
+            accountId = accountByEmail.getId();
+            log.info("계정 조회 성공: accountId={}", accountId);
+        }
+        final Long finalAccountId = accountId;
+        // Account 조회
+        Account account = accountRepository.findById(finalAccountId)
+                .orElseThrow(() -> {
+                    log.error("사용자를 찾을 수 없음: accountId={}", finalAccountId);
+                    return new CustomException(ErrorCode.NOT_FOUND_USER, "사용자를 찾을 수 없습니다: " + finalAccountId);
+                });
 
-        AccountFlight accountFlight = new AccountFlight();
-        accountFlight.setAccount(account);
-        accountFlight.setFlightId(requestDto.getFlightId());
-        accountFlight.setCarrier(requestDto.getCarrier());
-        accountFlight.setCarrierCode(requestDto.getCarrierCode());
-        accountFlight.setFlightNumber(requestDto.getFlightNumber());
-        accountFlight.setDepartureAirport(requestDto.getDepartureAirport());
-        accountFlight.setArrivalAirport(requestDto.getArrivalAirport());
-        accountFlight.setDepartureTime(requestDto.getDepartureTime());
-        accountFlight.setArrivalTime(requestDto.getArrivalTime());
-        accountFlight.setReturnDepartureAirport(requestDto.getReturnDepartureAirport());
-        accountFlight.setReturnArrivalAirport(requestDto.getReturnArrivalAirport());
-        accountFlight.setReturnDepartureTime(requestDto.getReturnDepartureTime());
-        accountFlight.setReturnArrivalTime(requestDto.getReturnArrivalTime());
-        accountFlight.setPassengerCount(requestDto.getPassengerCount());
-        accountFlight.setSelectedSeats(String.join(",", requestDto.getSelectedSeats()));
-        accountFlight.setTotalPrice(requestDto.getTotalPrice());
-        accountFlight.setStatus("RESERVED");
+        // 항공편 유효성 검사
+        TravelFlight travelFlight = travelFlightRepository.findByFlightId(requestDto.getFlightId())
+                .orElseThrow(() -> {
+                    log.error("항공편을 찾을 수 없음: flightId={}", requestDto.getFlightId());
+                    return new CustomException(ErrorCode.FLIGHT_NOT_FOUND, "항공편을 찾을 수 없습니다: " + requestDto.getFlightId());
+                });
 
+        // 예약 엔티티 생성
+        AccountFlight accountFlight = AccountFlight.builder()
+                .account(account)
+                .flightId(requestDto.getFlightId())
+                .carrier(requestDto.getCarrier())
+                .carrierCode(requestDto.getCarrierCode())
+                .flightNumber(requestDto.getFlightNumber())
+                .departureAirport(requestDto.getDepartureAirport())
+                .arrivalAirport(requestDto.getArrivalAirport())
+                .departureTime(requestDto.getDepartureTime())
+                .arrivalTime(requestDto.getArrivalTime())
+                .returnDepartureAirport(requestDto.getReturnDepartureAirport())
+                .returnArrivalAirport(requestDto.getReturnArrivalAirport())
+                .returnDepartureTime(requestDto.getReturnDepartureTime())
+                .returnArrivalTime(requestDto.getReturnArrivalTime())
+                .passengerCount(requestDto.getPassengerCount())
+                .selectedSeats(String.join(",", requestDto.getSelectedSeats()))
+                .totalPrice(requestDto.getTotalPrice())
+                .status("RESERVED")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        // 탑승객 및 연락처 정보 로깅
+        log.info("탑승객 정보: {}", requestDto.getPassengers());
+        log.info("연락처 정보: {}", requestDto.getContact());
+
+        // 예약 저장
         accountFlightRepository.save(accountFlight);
-        log.info("예약 저장 완료: id={}", accountFlight.getId());
+        log.info("예약 저장 완료: id={}, flightId={}", accountFlight.getId(), requestDto.getFlightId());
     }
 
     @Transactional(readOnly = true)

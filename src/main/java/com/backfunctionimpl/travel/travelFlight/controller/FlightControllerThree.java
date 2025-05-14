@@ -3,6 +3,7 @@ package com.backfunctionimpl.travel.travelFlight.controller;
 import com.backfunctionimpl.global.dto.ResponseDto;
 import com.backfunctionimpl.global.error.CustomException;
 import com.backfunctionimpl.global.error.ErrorCode;
+import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import com.backfunctionimpl.travel.config.AmadeusClient;
 import com.backfunctionimpl.travel.travelFlight.data.MockFlightData;
 import com.backfunctionimpl.travel.travelFlight.dto.*;
@@ -179,9 +180,14 @@ public class FlightControllerThree {
 
     @PostMapping("/book")
     public ResponseEntity<ResponseDto<?>> bookFlight(
-            @AuthenticationPrincipal Long accountId,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody AccountFlightRequestDto requestDto) {
         try {
+            if (userDetails == null || userDetails.getAccount() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ResponseDto.fail("AUTH_ERROR", "로그인이 필요합니다."));
+            }
+            Long accountId = userDetails.getAccount().getId();
             flightSearchService.saveBooking(accountId, requestDto);
             String complete = "예약이 완료되었습니다.";
             return ResponseEntity.ok(ResponseDto.success(complete));
@@ -193,8 +199,13 @@ public class FlightControllerThree {
 
     @GetMapping("/my-bookings")
     public ResponseEntity<ResponseDto<List<AccountFlightResponseDto>>> getMyBookings(
-            @AuthenticationPrincipal Long accountId) {
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
+            if (userDetails == null || userDetails.getAccount() == null) {
+                return ResponseEntity.badRequest()
+                        .body(ResponseDto.fail("AUTH_ERROR", "로그인이 필요합니다."));
+            }
+            Long accountId = userDetails.getAccount().getId();
             List<AccountFlightResponseDto> bookings = flightSearchService.getUserBookings(accountId);
             return ResponseEntity.ok(ResponseDto.success(bookings));
         } catch (Exception e) {
