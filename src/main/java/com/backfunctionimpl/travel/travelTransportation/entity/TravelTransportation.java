@@ -26,4 +26,12 @@ public class TravelTransportation extends BaseEntity {
     @JoinColumn(name = "travel_plan_id")
     private TravelPlan travelPlan;
 
+    public void setType(Type type) {
+        this.type = type;
+
+    }
+
+    public void setTravelPlan(TravelPlan travelPlan) {
+        this.travelPlan = travelPlan;
+    }
 }

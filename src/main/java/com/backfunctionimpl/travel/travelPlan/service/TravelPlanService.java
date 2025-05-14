@@ -11,6 +11,7 @@ import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
 import com.backfunctionimpl.travel.travelPlace.repository.TravelPlaceRepository;
 import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportation;
 import com.backfunctionimpl.travel.travelTransportation.repository.TravelTransportationRepository;
+import com.backfunctionimpl.travel.travelTransportation.enums.Type;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalTime;
@@ -66,7 +67,7 @@ public class TravelPlanService {
 
         // 교통수단 저장
         TravelTransportation transportation = new TravelTransportation();
-        transportation.setType(dto.getTransportation());
+        transportation.setType(Type.valueOf(dto.getTransportation()));
         transportation.setTravelPlan(plan);
         travelTransportationRepository.save(transportation);
     }
