@@ -3,8 +3,6 @@ package com.backfunctionimpl.account.service;
 import com.backfunctionimpl.account.dto.*;
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.entity.RefreshToken;
-import com.backfunctionimpl.account.entity.Role;
-import com.backfunctionimpl.account.entity.TravelLevel;
 import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.account.repository.RefreshTokenRepository;
 import com.backfunctionimpl.global.security.jwt.dto.TokenDto;

@@ -95,6 +95,4 @@ public class Account extends BaseEntity {
         this.password = "SOCIAL_LOGIN";
     }
 
-
-
 }
