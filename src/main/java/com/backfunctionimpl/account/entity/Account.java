@@ -1,6 +1,7 @@
 package com.backfunctionimpl.account.entity;
 
 import com.backfunctionimpl.post.entity.Post;
+import com.backfunctionimpl.travel.travelFlight.entity.AccountFlight;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -67,9 +68,13 @@ public class Account extends BaseEntity {
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AccountFlight> accountFlights = new ArrayList<>();
     //  경험치
     @Column(nullable = false)
     private int levelExp = 0;  // 기본 0
+
+
 
     //  현재 레벨 계산
     public TravelLevel getLevel() {
