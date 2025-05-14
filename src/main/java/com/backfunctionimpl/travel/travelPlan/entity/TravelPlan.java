@@ -22,7 +22,7 @@ public class TravelPlan extends BaseEntity {
     private LocalDate endDate;
     private String country;
     private String city;
-
+    private String place;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "a_id")
     private Account account;
@@ -38,4 +38,25 @@ public class TravelPlan extends BaseEntity {
 
     @OneToMany(fetch = FetchType.LAZY,mappedBy = "travelPlan", cascade = CascadeType.ALL)
     private List<TravelAccommodation> travelAccommodations = new ArrayList<>();
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
 }

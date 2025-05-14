@@ -19,9 +19,24 @@ public class TravelPlace extends BaseEntity {
 
     private String name;
     private String address;
-    private double latitude;
-    private double longitude;
-    private int day;
+    private String day;
     private LocalTime time;
+    private String category;
+    private String description;
+    private double lat;
+    private double lng;
+
+    public void setDay(String day) { this.day = day; }
+    public String getDay() { return this.day; }
+
+    public void setName(String name) { this.name = name; }
+    public void setCategory(String category) { this.category = category; }
+    public void setDescription(String description) { this.description = description; }
+    public void setTime(LocalTime time) { this.time = time; }
+    public void setLat(double lat) { this.lat = lat; }
+    public void setLng(double lng) { this.lng = lng; }
+    public void setTravelPlan(TravelPlan travelPlan) { this.travelPlan = travelPlan; }
+
+
 
 }
