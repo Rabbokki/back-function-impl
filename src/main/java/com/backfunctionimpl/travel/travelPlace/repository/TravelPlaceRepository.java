@@ -1,4 +1,7 @@
 package com.backfunctionimpl.travel.travelPlace.repository;
 
-public interface TravelPlaceRepository {
+import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TravelPlaceRepository extends JpaRepository<TravelPlace, Long> {
 }

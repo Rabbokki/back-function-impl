@@ -18,8 +18,40 @@ public class TravelAccommodation extends BaseEntity {
 
     private String name;
     private String address;
+    private String day;
+    private String description;
     private LocalDateTime checkInDate;
     private LocalDateTime checkOutDate;
     private double latitude;
     private double longitude;
+
+    public void setDay(String day) {
+        this.day = day;
+    }
+
+    public String getDay() {
+        return this.day;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setLat(double lat) {
+        this.latitude = lat;
+    }
+
+    public void setLng(double lng) {
+        this.longitude = lng;
+    }
+
+    public void setTravelPlan(TravelPlan travelPlan) {
+        this.travelPlan = travelPlan;
+    }
+
+
 }

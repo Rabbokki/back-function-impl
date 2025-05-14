@@ -13,6 +13,7 @@ import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportat
 import com.backfunctionimpl.travel.travelTransportation.repository.TravelTransportationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalTime;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +45,7 @@ public class TravelPlanService {
             place.setName(placeDto.getName());
             place.setCategory(placeDto.getCategory());
             place.setDescription(placeDto.getDescription());
-            place.setTime(placeDto.getTime());
+            place.setTime(LocalTime.parse(placeDto.getTime()));
             place.setLat(placeDto.getLat());
             place.setLng(placeDto.getLng());
             place.setTravelPlan(plan);
