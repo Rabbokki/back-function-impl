@@ -2,6 +2,7 @@ package com.backfunctionimpl.admin.controller;
 
 
 import com.backfunctionimpl.account.dto.AccountResponseDto;
+import com.backfunctionimpl.account.dto.AccountUpdateRequestDto;
 import com.backfunctionimpl.admin.service.AdminService;
 import com.backfunctionimpl.post.dto.PostDto;
 import com.backfunctionimpl.review.dto.ReviewDto;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,8 +30,19 @@ public class AdminController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    @PatchMapping("/users/update/{id}")
+    public ResponseEntity<AccountResponseDto> updateUser(
+            @PathVariable("id") Long id,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
+            @RequestPart(value = "dto") AccountUpdateRequestDto updateDto) {
+
+        AccountResponseDto updatedUser = adminService.updateUser(id, updateDto, profileImage);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/users/delete/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }

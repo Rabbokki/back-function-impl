@@ -23,7 +23,7 @@ public class Review extends BaseEntity {
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "account_account_id")
     private Account account;
 
     @Column(nullable = false)

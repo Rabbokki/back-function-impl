@@ -1,6 +1,7 @@
 package com.backfunctionimpl.account.entity;
 
 import com.backfunctionimpl.post.entity.Post;
+import com.backfunctionimpl.review.entity.Review;
 import com.backfunctionimpl.travel.travelFlight.entity.AccountFlight;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
@@ -63,6 +64,9 @@ public class Account extends BaseEntity {
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
+    private List<Review> reviews;
 
     @Enumerated(EnumType.STRING)
     private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
