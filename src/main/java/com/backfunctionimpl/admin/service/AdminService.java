@@ -95,7 +95,10 @@ public class AdminService {
                         post.getReviewSize(),
                         post.getTotalRating(),
                         post.getAverageRating(),
-                        post.getTags().stream().map(PostTag::getTagName).toList()
+                        post.getTags().stream().map(PostTag::getTagName).toList(),
+                        post.getCreatedAt(),
+                        post.getUpdatedAt()
+
                 ))
                 .toList();
     }

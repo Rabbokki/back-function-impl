@@ -73,7 +73,9 @@ public class PostService {
                 saved.getReviewSize(),
                 saved.getTotalRating(),
                 saved.getAverageRating(),
-                saved.getTags().stream().map(PostTag::getTagName).toList()
+                saved.getTags().stream().map(PostTag::getTagName).toList(),
+                post.getCreatedAt(),
+                post.getUpdatedAt()
         );
     }
 
@@ -95,10 +97,13 @@ public class PostService {
                         post.getReviewSize(),
                         post.getTotalRating(),
                         post.getAverageRating(),
-                        post.getTags().stream().map(PostTag::getTagName).toList()
+                        post.getTags().stream().map(PostTag::getTagName).toList(),
+                        post.getCreatedAt(),
+                        post.getUpdatedAt()
                 ))
                 .toList();
     }
+
     public List<PostDto> getFilteredPosts(String category, String search) {
         // 카테고리와 검색어를 이용해 필터링
         return postRepository.findAll().stream()
@@ -125,11 +130,36 @@ public class PostService {
                         post.getReviewSize(),
                         post.getTotalRating(),
                         post.getAverageRating(),
-                        post.getTags().stream().map(PostTag::getTagName).toList()
+                        post.getTags().stream().map(PostTag::getTagName).toList(),
+                        post.getCreatedAt(),
+                        post.getUpdatedAt()
                 ))
                 .toList();
     }
 
+    public List<PostDto> getAllUserPosts(Long accountId) {
+        return postRepository.findByAccountId(accountId).stream()
+                .map(post -> new PostDto(
+                        post.getId(),
+                        post.getAccount().getId(),
+                        post.getAccount().getNickname(),
+                        post.getAccount().getImgUrl(),
+                        post.getTitle(),
+                        post.getContent(),
+                        post.getImages().stream().map(Image::getImageUrl).toList(),
+                        post.getCategory(),
+                        post.getViews(),
+                        post.getCommentsCount(),
+                        post.getLikeCount(),
+                        post.getReviewSize(),
+                        post.getTotalRating(),
+                        post.getAverageRating(),
+                        post.getTags().stream().map(PostTag::getTagName).toList(),
+                        post.getCreatedAt(),
+                        post.getUpdatedAt()
+                ))
+                .toList();
+    }
 
     // 게시글 수정
     @Transactional
@@ -144,10 +174,7 @@ public class PostService {
         post.setTitle(dto.getTitle());
         post.setContent(dto.getContent());
 
-        System.out.println("before clearing: " + post.getImages());
-        post.getImages().clear(); // <-- important: triggers orphan removal
-        System.out.println("after clearing: " + post.getImages());
-
+        post.getImages().clear();
         List<String> uploadedUrls = new ArrayList<>();
         if (imgs != null && !imgs.isEmpty()) {
             for (MultipartFile img : imgs) {
@@ -184,11 +211,11 @@ public class PostService {
 
 
     // 게시글 삭제
-    public void deleteByPostId(Long id, Account account) {
+    public void deleteByPostId(Long id, Long accountId) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
 
-        if (!post.getAccount().getId().equals(account.getId())) {
+        if (!post.getAccount().getId().equals(accountId)) {
             throw new SecurityException("작성자만 삭제할 수 있습니다.");
         }
 
@@ -215,7 +242,9 @@ public class PostService {
                 post.getReviewSize(),
                 post.getTotalRating(),
                 post.getAverageRating(),
-                post.getTags().stream().map(PostTag::getTagName).toList()
+                post.getTags().stream().map(PostTag::getTagName).toList(),
+                post.getCreatedAt(),
+                post.getUpdatedAt()
         );
     }
 
