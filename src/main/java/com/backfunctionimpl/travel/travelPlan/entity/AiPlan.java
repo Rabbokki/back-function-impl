@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "ai_plans")
 @Getter
@@ -22,4 +25,14 @@ public class AiPlan extends BaseEntity {
 
     @Column(name = "itinerary_data", columnDefinition = "JSON")
     private String itineraryData;
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    @Column(name = "plan_type", nullable = false, columnDefinition = "VARCHAR(10) DEFAULT 'MY'")
+    private String planType;
 }
