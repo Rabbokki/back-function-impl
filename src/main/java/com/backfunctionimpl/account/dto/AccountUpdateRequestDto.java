@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 
 //회원정보 수정 요청 dto
 public class AccountUpdateRequestDto {
+    private String name;
     private String nickname;
     private String password;
     private String bio;

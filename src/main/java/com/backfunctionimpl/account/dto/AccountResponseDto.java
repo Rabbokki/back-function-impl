@@ -4,6 +4,8 @@ import com.backfunctionimpl.account.entity.Account;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @AllArgsConstructor
 
@@ -11,6 +13,7 @@ import lombok.Getter;
 public class AccountResponseDto {
     private Long id;
     private String email;
+    private String name;
     private String nickname;
     public String role;
     private String imgUrl;
@@ -19,11 +22,13 @@ public class AccountResponseDto {
     private String birthday;
     private String level;
     private int levelExp;
+    private LocalDateTime createdAt;
 
     // Account 객체로부터 변환
     public AccountResponseDto(Account account) {
         this.id = account.getId();
         this.email = account.getEmail();
+        this.name = account.getName();
         this.nickname = account.getNickname();
         this.role = account.getRole();
         this.imgUrl = account.getImgUrl();
@@ -32,5 +37,6 @@ public class AccountResponseDto {
         this.birthday= String.valueOf(account.getBirthday());
         this.level = account.getLevel().name();
         this.levelExp = account.getLevelExp();
+        this.createdAt = account.getCreatedAt();
     }
 }

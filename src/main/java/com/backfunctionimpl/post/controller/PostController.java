@@ -63,7 +63,11 @@ public class PostController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deletePost(@PathVariable("id") Long id,
                                         @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        postService.deleteByPostId(id, userDetails.getAccount());
+        if (userDetails == null || userDetails.getAccount() == null) {
+            return null;
+        }
+        Account account = userDetails.getAccount();
+        postService.deleteByPostId(id, account.getId());
         return ResponseEntity.status(HttpStatus.OK).body("삭제 성공");
     }
 
@@ -74,6 +78,16 @@ public class PostController {
             @RequestParam(value = "search", required = false) String search) {
 
         return postService.getFilteredPosts(category, search);
+    }
+
+    // 게시글 유저 아이디로 조회
+    @GetMapping("/account/")
+    public List<PostDto> getAllUserPosts(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        if (userDetails == null || userDetails.getAccount() == null) {
+            return null;
+        }
+        Account account = userDetails.getAccount();
+        return postService.getAllUserPosts(account.getId());
     }
 
 
