@@ -36,7 +36,7 @@ public class PlacesController {
         if ("all".equals(cityId)) {
             List<SimplePlaceDto> total = new ArrayList<>();
 
-            Map<String, double[]> cityMap = CountryCityMapper.getAllCities(); 
+            Map<String, double[]> cityMap = CountryCityMapper.getAllCities();
 
             for (Map.Entry<String, double[]> entry : cityMap.entrySet()) {
                 String id = entry.getKey();

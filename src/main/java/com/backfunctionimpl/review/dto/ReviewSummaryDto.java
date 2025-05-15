@@ -22,4 +22,3 @@ public class ReviewSummaryDto {
         this.createdAt = review.getCreatedAt();
     }
 }
-

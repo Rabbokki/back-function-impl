@@ -22,7 +22,7 @@ public class Review extends BaseEntity {
     private String placeId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
+//    @JoinColumn(nullable = false)
     private Account account;
 
     @Column(nullable = false)

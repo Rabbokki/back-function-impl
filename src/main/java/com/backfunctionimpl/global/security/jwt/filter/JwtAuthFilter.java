@@ -38,8 +38,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         log.info("Request Content-Type: {}", request.getContentType());
-        String accessToken = jwtUtil.getHeaderToken(request, "Access_Token");
+//        String accessToken = jwtUtil.getHeaderToken(request, "Access_Token");
+        String bearerToken = request.getHeader("Authorization");
+        String accessToken = null;
+
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            accessToken = bearerToken.substring(7);
+        }
         String refreshToken = jwtUtil.getHeaderToken(request, "Refresh");
+
 
         log.info("Request URI: {}", request.getRequestURI());
         log.info("Access Token from header: {}", accessToken);

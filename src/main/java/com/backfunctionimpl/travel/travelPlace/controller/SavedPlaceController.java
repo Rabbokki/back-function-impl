@@ -1,6 +1,7 @@
 package com.backfunctionimpl.travel.travelPlace.controller;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceRequestDto;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceResponseDto;
 import com.backfunctionimpl.travel.travelPlace.entity.SavedPlace;
@@ -21,13 +22,15 @@ public class SavedPlaceController {
 
     @PostMapping
     public ResponseEntity<?> save(@RequestBody SavedPlaceRequestDto dto,
-                                  @AuthenticationPrincipal Account account) {
+                                  @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Account account = userDetails.getAccount(); // ✅ null 방지
         SavedPlace saved = savedPlaceService.save(dto, account);
         return ResponseEntity.ok("저장 완료");
     }
 
     @GetMapping
-    public ResponseEntity<?> getSavedPlaces(@AuthenticationPrincipal Account account) {
+    public ResponseEntity<?> getSavedPlaces(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Account account = userDetails.getAccount();
         List<SavedPlaceResponseDto> savedPlaces = savedPlaceService.findAllByAccount(account);
         return ResponseEntity.ok(savedPlaces);
     }

@@ -54,7 +54,7 @@ public class AccountService {
         account.setBio(request.getBio());
         account.setGender(request.getGender());
 
-       //  프로필 이미지 업로드 처리 (예: S3 업로드 or 로컬 저장)
+        //  프로필 이미지 업로드 처리 (예: S3 업로드 or 로컬 저장)
         if (profileImage != null && !profileImage.isEmpty()) {
             String imageUrl = s3Service.uploadFile(profileImage);// <- 여기서 S3에 저장됨
             account.setImgUrl(imageUrl);

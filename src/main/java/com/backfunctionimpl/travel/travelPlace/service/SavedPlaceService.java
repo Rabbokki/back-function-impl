@@ -38,4 +38,3 @@ public class SavedPlaceService {
                 .collect(Collectors.toList());
     }
 }
-
