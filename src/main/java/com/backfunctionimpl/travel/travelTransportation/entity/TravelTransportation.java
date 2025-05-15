@@ -5,10 +5,15 @@ import com.backfunctionimpl.account.entity.BaseEntity;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import com.backfunctionimpl.travel.travelTransportation.enums.Type;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "travel_transportations")
+@Getter
+@Setter
 public class TravelTransportation extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,22 +21,12 @@ public class TravelTransportation extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private Type type;
-    private String startLocation;
-    private String endLocation;
 
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    @Column(name = "day")
+    private String day;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "travel_plan_id")
     private TravelPlan travelPlan;
 
-    public void setType(Type type) {
-        this.type = type;
-
-    }
-
-    public void setTravelPlan(TravelPlan travelPlan) {
-        this.travelPlan = travelPlan;
-    }
 }

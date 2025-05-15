@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface TravelPlanRepository extends JpaRepository<TravelPlan, Long> {
 
     Optional<TravelPlan> findFirstByOrderByIdDesc();
-
-
     List<TravelPlan> findByAccountId(Long accountId);
+    List<TravelPlan> findByAccountEmail(String email);
 }
