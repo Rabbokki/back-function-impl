@@ -30,6 +30,7 @@ public class PostService {
                 .content(dto.getContent())
                 .category(dto.getCategory())
                 .account(account)
+                .reported(false)
                 .build();
 
         List<String> uploadedUrls = new ArrayList<>();
@@ -61,12 +62,14 @@ public class PostService {
         return new PostDto(
                 saved.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getName(),
                 post.getAccount().getNickname(),
                 post.getAccount().getImgUrl(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(Image::getImageUrl).toList(),
                 saved.getCategory(),
+                saved.isReported(),
                 saved.getViews(),
                 saved.getCommentsCount(),
                 saved.getLikeCount(),
@@ -85,12 +88,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -109,8 +114,11 @@ public class PostService {
         return postRepository.findAll().stream()
                 .filter(post -> {
                     boolean matchesCategory = category == null ||
+                            category.trim().isEmpty() ||
+                            category.equalsIgnoreCase("ALL") ||
                             post.getCategory().name().equalsIgnoreCase(category); // `name()`을 사용하여 비교
                     boolean matchesSearch = search == null ||
+                            search.trim().isEmpty() ||
                             post.getTitle().toLowerCase().contains(search.toLowerCase()) ||
                             post.getTags().stream().anyMatch(tag -> tag.getTagName().toLowerCase().contains(search.toLowerCase()));
                     return matchesCategory && matchesSearch;
@@ -118,12 +126,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -142,12 +152,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -230,12 +242,14 @@ public class PostService {
         return new PostDto(
                 post.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getName(),
                 post.getAccount().getNickname(),
                 post.getAccount().getImgUrl(),
                 post.getTitle(),
                 post.getContent(),
                 post.getImages().stream().map(Image::getImageUrl).toList(),
                 post.getCategory(),
+                post.isReported(),
                 post.getViews(),
                 post.getCommentsCount(),
                 post.getLikeCount(),

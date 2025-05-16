@@ -2,10 +2,7 @@ package com.backfunctionimpl.post.dto;
 
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.post.enums.Category;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,11 +14,13 @@ public class PostDto {
     private Long id;
     private Long userId;
     private String userName;
+    private String userNickname;
     private String userImgUrl;
     private String title;
     private String content;
     private List<String> imgUrl;
     private Category category;
+    private boolean reported;
     private int views;
     private int commentsCount;
     private int likeCount;
@@ -33,16 +32,18 @@ public class PostDto {
     private LocalDateTime updatedAt;
 
     // 모든 필드를 받는 생성자 추가
-    public PostDto(Long id, Long userId, String userName, String userImgUrl, String title, String content, List<String> imgUrl, Category category,
-                   int views, int commentsCount, int likeCount, int reviewSize, int totalRating, float averageRating, List<String> tags, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public PostDto(Long id, Long userId, String userName, String userNickname, String userImgUrl, String title, String content, List<String> imgUrl, Category category,
+                   boolean reported, int views, int commentsCount, int likeCount, int reviewSize, int totalRating, float averageRating, List<String> tags, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.userId = userId;
         this.userName = userName;
+        this.userNickname = userNickname;
         this.userImgUrl = userImgUrl;
         this.title = title;
         this.content = content;
         this.imgUrl = imgUrl;
         this.category = category;
+        this.reported = reported;
         this.views = views;
         this.commentsCount = commentsCount;
         this.likeCount = likeCount;

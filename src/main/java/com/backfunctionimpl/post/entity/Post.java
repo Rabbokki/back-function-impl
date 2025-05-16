@@ -32,6 +32,8 @@ public class Post extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private Category category;
 
+    @Column(nullable = false)
+    private boolean reported;
 
     private int views;
     private int commentsCount;
