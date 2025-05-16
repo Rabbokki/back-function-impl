@@ -29,4 +29,21 @@ public class CountryCityMapper {
     public static Map<String, double[]> getAllCities() {
         return CITY_MAP;
     }
+
+
+    private static final Map<String, String> CITY_TO_COUNTRY = new HashMap<>();
+
+    static {
+        CITY_TO_COUNTRY.put("도쿄", "일본");
+        CITY_TO_COUNTRY.put("오사카", "일본");
+        CITY_TO_COUNTRY.put("후쿠오카", "일본");
+        CITY_TO_COUNTRY.put("파리", "프랑스");
+        CITY_TO_COUNTRY.put("로마", "이탈리아");
+        CITY_TO_COUNTRY.put("베니스", "이탈리아");
+    }
+
+    public static String getCountry(String city) {
+        return CITY_TO_COUNTRY.getOrDefault(city, "국가없음");
+    }
+
 }

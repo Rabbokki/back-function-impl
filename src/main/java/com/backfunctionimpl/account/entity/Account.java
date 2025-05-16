@@ -3,6 +3,7 @@ package com.backfunctionimpl.account.entity;
 import com.backfunctionimpl.post.entity.Post;
 import com.backfunctionimpl.review.entity.Review;
 import com.backfunctionimpl.travel.travelFlight.entity.AccountFlight;
+import com.backfunctionimpl.travel.travelPlace.entity.SavedPlace;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -78,6 +79,10 @@ public class Account extends BaseEntity {
     //  경험치
     @Column(nullable = false)
     private int levelExp = 0;  // 기본 0
+
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
+    private List<SavedPlace> savedPlaces;
+
 
 
     //  현재 레벨 계산

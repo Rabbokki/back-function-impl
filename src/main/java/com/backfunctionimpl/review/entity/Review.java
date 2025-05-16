@@ -34,6 +34,9 @@ public class Review extends BaseEntity {
     @Column(length = 1000)
     private String content;
 
+    // 이 postId는 DB 컬럼으로 만들지 않음
+    @Transient
+    private Long postId;
 
     public Review(String placeId, Account account, int rating, String nickname, String content) {
         this.placeId = placeId;

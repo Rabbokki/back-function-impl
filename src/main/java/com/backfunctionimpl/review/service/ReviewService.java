@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -59,7 +60,9 @@ public class ReviewService {
             return ResponseDto.fail("404", "작성한 리뷰가 존재하지 않습니다.");
         }
 
+        Long deletedId = review.get().getId(); // 삭제될 리뷰의 ID
         reviewRepository.delete(review.get());
-        return ResponseDto.success("리뷰가 삭제되었습니다.");
+
+        return ResponseDto.success(Map.of("deletedId", deletedId)); // ✅ ID 포함해서 응답
     }
 }

@@ -2,20 +2,21 @@ package com.backfunctionimpl.travel.travelPlace.entity;
 
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.entity.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
+import jakarta.persistence.Id;
 
 @Entity
-@Table(name = "saved_place")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SavedPlace {
+public class SavedPlace extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,14 +30,9 @@ public class SavedPlace {
     private String image;
     private String type;
 
-    private LocalDate savedDate;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id")
+    @JoinColumn(name = "account_id", nullable = false)
+    @JsonIgnore
     private Account account;
 
-    @PrePersist
-    public void setSavedDate() {
-        this.savedDate = LocalDate.now();
-    }
 }
