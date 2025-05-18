@@ -133,6 +133,7 @@ public class AiPlanController {
         }
     }
 
+
     @GetMapping("/my-plans")
     public ResponseEntity<List<AiPlanResponseDto>> getMyAiPlans(
             @AuthenticationPrincipal UserDetails userDetails) {
