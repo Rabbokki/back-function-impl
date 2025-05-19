@@ -1,6 +1,7 @@
 package com.backfunctionimpl.post.service;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.post.dto.PostDto;
 import com.backfunctionimpl.post.entity.Image;
 import com.backfunctionimpl.post.entity.Post;
@@ -21,6 +22,7 @@ import java.util.List;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final AccountRepository accountRepository;
     private final S3Service s3Service;
 
     // 게시글 생성
@@ -30,6 +32,7 @@ public class PostService {
                 .content(dto.getContent())
                 .category(dto.getCategory())
                 .account(account)
+                .reported(false)
                 .build();
 
         List<String> uploadedUrls = new ArrayList<>();
@@ -58,15 +61,20 @@ public class PostService {
 
         Post saved = postRepository.save(post);
 
+        account.addExp(15);
+        accountRepository.save(account);
+
         return new PostDto(
                 saved.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getName(),
                 post.getAccount().getNickname(),
                 post.getAccount().getImgUrl(),
                 saved.getTitle(),
                 saved.getContent(),
                 saved.getImages().stream().map(Image::getImageUrl).toList(),
                 saved.getCategory(),
+                saved.isReported(),
                 saved.getViews(),
                 saved.getCommentsCount(),
                 saved.getLikeCount(),
@@ -85,12 +93,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -109,8 +119,11 @@ public class PostService {
         return postRepository.findAll().stream()
                 .filter(post -> {
                     boolean matchesCategory = category == null ||
+                            category.trim().isEmpty() ||
+                            category.equalsIgnoreCase("ALL") ||
                             post.getCategory().name().equalsIgnoreCase(category); // `name()`을 사용하여 비교
                     boolean matchesSearch = search == null ||
+                            search.trim().isEmpty() ||
                             post.getTitle().toLowerCase().contains(search.toLowerCase()) ||
                             post.getTags().stream().anyMatch(tag -> tag.getTagName().toLowerCase().contains(search.toLowerCase()));
                     return matchesCategory && matchesSearch;
@@ -118,12 +131,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -142,12 +157,14 @@ public class PostService {
                 .map(post -> new PostDto(
                         post.getId(),
                         post.getAccount().getId(),
+                        post.getAccount().getName(),
                         post.getAccount().getNickname(),
                         post.getAccount().getImgUrl(),
                         post.getTitle(),
                         post.getContent(),
                         post.getImages().stream().map(Image::getImageUrl).toList(),
                         post.getCategory(),
+                        post.isReported(),
                         post.getViews(),
                         post.getCommentsCount(),
                         post.getLikeCount(),
@@ -230,12 +247,14 @@ public class PostService {
         return new PostDto(
                 post.getId(),
                 post.getAccount().getId(),
+                post.getAccount().getName(),
                 post.getAccount().getNickname(),
                 post.getAccount().getImgUrl(),
                 post.getTitle(),
                 post.getContent(),
                 post.getImages().stream().map(Image::getImageUrl).toList(),
                 post.getCategory(),
+                post.isReported(),
                 post.getViews(),
                 post.getCommentsCount(),
                 post.getLikeCount(),
@@ -260,6 +279,28 @@ public class PostService {
         postRepository.save(post);
     }
 
+    public void addReport(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        if (!post.isReported()) {
+            post.setReported(true);
+            // 게시글 저장
+            postRepository.save(post);
+        }
+    }
+
+    public void removeReport(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        if (post.isReported()) {
+            post.setReported(false);
+            // 게시글 저장
+            postRepository.save(post);
+        }
+    }
+
     // 뷰 처리
     public void addView(Long postId) {
         Post post = postRepository.findById(postId)
@@ -271,4 +312,5 @@ public class PostService {
         // 게시글 저장
         postRepository.save(post);
     }
+
 }

@@ -1,6 +1,7 @@
 package com.backfunctionimpl.review.service;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.global.dto.ResponseDto;
 import com.backfunctionimpl.review.dto.ReviewDto;
 import com.backfunctionimpl.review.dto.ReviewSummaryDto;
@@ -19,6 +20,7 @@ import java.util.Optional;
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final AccountRepository accountRepository;
 
     // ✅ 1. placeId로 리뷰 목록 조회
     @Transactional(readOnly = true)
@@ -48,6 +50,10 @@ public class ReviewService {
         );
 
         reviewRepository.save(review);
+
+        account.addExp(20);
+        accountRepository.save(account);
+
         return ResponseDto.success("리뷰가 등록되었습니다.");
     }
 
