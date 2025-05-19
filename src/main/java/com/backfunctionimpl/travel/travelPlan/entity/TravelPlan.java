@@ -7,8 +7,7 @@ import com.backfunctionimpl.travel.travelFlight.entity.TravelFlight;
 import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
 import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportation;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -18,6 +17,9 @@ import java.util.List;
 @Getter
 @Setter
 @Table(name = "travel_plans")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TravelPlan extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

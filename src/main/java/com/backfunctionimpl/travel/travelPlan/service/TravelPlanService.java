@@ -2,19 +2,15 @@ package com.backfunctionimpl.travel.travelPlan.service;
 
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.repository.AccountRepository;
-import com.backfunctionimpl.travel.travelPlan.dto.TravelPlanResponseDto;
-import com.backfunctionimpl.travel.travelPlan.dto.TravelPlanSaveRequestDto;
+import com.backfunctionimpl.travel.travelPlan.dto.TravelPlanRequest;
+import com.backfunctionimpl.travel.travelPlan.dto.TravelPlanResponse;
 import com.backfunctionimpl.travel.travelPlan.entity.TravelPlan;
 import com.backfunctionimpl.travel.travelPlan.repository.TravelPlanRepository;
 import com.backfunctionimpl.travel.travelAccommodation.entity.TravelAccommodation;
-import com.backfunctionimpl.travel.travelAccommodation.repository.TravelAccommodationRepository;
 import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
-import com.backfunctionimpl.travel.travelPlace.repository.TravelPlaceRepository;
 import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportation;
-import com.backfunctionimpl.travel.travelTransportation.repository.TravelTransportationRepository;
 import com.backfunctionimpl.travel.travelTransportation.enums.Type;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,8 +21,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,118 +40,148 @@ public class TravelPlanService {
     }
 
     @Transactional
-    public void saveTravelPlan(String userId, Map<String, Object> planData) {
+    public TravelPlanResponse saveTravelPlan(TravelPlanRequest request, String userId) {
         try {
+            logger.info("Received travel plan request: city={}, country={}, startDate={}, endDate={}, planType={}, places={}, travelPlanId={}",
+                    request.getCity(), request.getCountry(), request.getStartDate(), request.getEndDate(), request.getPlanType(),
+                    request.getPlaces() != null ? request.getPlaces().size() : 0, request.getTravelPlanId());
+
             // 입력 검증
-            String city = (String) planData.get("city");
-            if (city == null || city.trim().isEmpty()) {
+            if (request.getCity() == null || request.getCity().trim().isEmpty()) {
+                logger.error("도시명이 누락되었습니다.");
                 throw new IllegalArgumentException("도시명이 누락되었습니다.");
             }
 
-            TravelPlan travelPlan = new TravelPlan();
-            travelPlan.setCity(city);
-            travelPlan.setCountry((String) planData.get("country"));
-            travelPlan.setPlanType("MY");
-
-            DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
-            try {
-                travelPlan.setStartDate(LocalDate.parse((String) planData.get("start_date"), dateFormatter));
-            } catch (DateTimeParseException e) {
-                logger.warn("Invalid start_date format: {}. Using current date.", planData.get("start_date"));
-                travelPlan.setStartDate(LocalDate.now());
-            }
-            try {
-                travelPlan.setEndDate(LocalDate.parse((String) planData.get("end_date"), dateFormatter));
-            } catch (DateTimeParseException e) {
-                logger.warn("Invalid end_date format: {}. Using start_date or current date.", planData.get("end_date"));
-                travelPlan.setEndDate(travelPlan.getStartDate() != null ? travelPlan.getStartDate() : LocalDate.now());
-            }
-
+            // Account 조회
             Account account = accountRepository.findByEmail(userId)
                     .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-            travelPlan.setAccount(account);
 
-            // 장소 처리
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> places = (List<Map<String, Object>>) planData.get("places");
-            if (places != null) {
-                for (Map<String, Object> placeData : places) {
-                    TravelPlace place = new TravelPlace();
-                    place.setName((String) placeData.get("name"));
-                    place.setAddress((String) placeData.get("address"));
-                    place.setDay((String) placeData.get("day"));
-                    place.setCategory((String) placeData.get("category"));
-                    place.setDescription((String) placeData.get("description"));
-                    try {
-                        String timeStr = (String) placeData.get("time");
-                        if (timeStr != null && !timeStr.isEmpty()) {
-                            place.setTime(LocalTime.parse(timeStr));
-                        }
-                    } catch (DateTimeParseException e) {
-                        logger.warn("Invalid time format: {}. Skipping time.", placeData.get("time"));
-                    }
-                    place.setLat(parseDoubleOrDefault(placeData.get("latitude"), 0.0));
-                    place.setLng(parseDoubleOrDefault(placeData.get("longitude"), 0.0));
-                    place.setTravelPlan(travelPlan);
-                    travelPlan.getTravelPlaces().add(place);
+            TravelPlan travelPlan;
+
+            // travelPlanId가 있으면 기존 일정 업데이트
+            if (request.getTravelPlanId() != null) {
+                travelPlan = travelPlanRepository.findById(request.getTravelPlanId())
+                        .orElseThrow(() -> new RuntimeException("Travel plan not found: " + request.getTravelPlanId()));
+                logger.info("Updating existing travel plan: id={}", request.getTravelPlanId());
+            } else {
+                // 중복 일정 확인
+                LocalDate startDate = parseDate(request.getStartDate(), "start_date");
+                LocalDate endDate = parseDate(request.getEndDate(), "end_date");
+                List<TravelPlan> existingPlans = travelPlanRepository.findByAccountAndCityAndStartDateAndEndDateAndPlanType(
+                        account, request.getCity(), startDate, endDate, request.getPlanType());
+                if (!existingPlans.isEmpty()) {
+                    logger.warn("Duplicate travel plan found for user: {}, city: {}, startDate: {}, endDate: {}, planType: {}",
+                            userId, request.getCity(), startDate, endDate, request.getPlanType());
+                    travelPlan = existingPlans.get(0); // 첫 번째 일정 사용
+                } else {
+                    travelPlan = TravelPlan.builder()
+                            .city(request.getCity())
+                            .country(request.getCountry())
+                            .startDate(startDate)
+                            .endDate(endDate)
+                            .planType(request.getPlanType() != null ? request.getPlanType() : "MY")
+                            .account(account)
+                            .travelPlaces(new ArrayList<>())
+                            .travelAccommodations(new ArrayList<>())
+                            .travelTransportations(new ArrayList<>())
+                            .build();
                 }
             }
 
-            // 숙소 처리
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> accommodations = (List<Map<String, Object>>) planData.get("accommodations");
-            if (accommodations != null) {
-                for (Map<String, Object> accData : accommodations) {
-                    TravelAccommodation acc = new TravelAccommodation();
-                    acc.setName((String) accData.get("name"));
-                    acc.setAddress((String) accData.get("address"));
-                    acc.setDay((String) accData.get("day"));
-                    acc.setDescription((String) accData.get("description"));
-                    try {
-                        String checkIn = (String) accData.get("check_in_date");
-                        String checkOut = (String) accData.get("check_out_date");
-                        if (checkIn != null && !checkIn.isEmpty()) {
-                            acc.setCheckInDate(LocalDateTime.parse(checkIn));
+            // TravelPlace 리스트 생성
+            List<TravelPlace> places = request.getPlaces() != null
+                    ? request.getPlaces().stream()
+                    .map(dto -> {
+                        TravelPlace place = new TravelPlace();
+                        place.setName(dto.getName());
+                        place.setAddress(dto.getAddress());
+                        place.setDay(dto.getDay());
+                        place.setCategory(dto.getCategory());
+                        place.setDescription(dto.getDescription());
+                        place.setLat(dto.getLatitude() != null ? dto.getLatitude() : 0.0);
+                        place.setLng(dto.getLongitude() != null ? dto.getLongitude() : 0.0);
+                        try {
+                            if (dto.getTime() != null && !dto.getTime().isEmpty()) {
+                                place.setTime(LocalTime.parse(dto.getTime()));
+                            }
+                        } catch (DateTimeParseException e) {
+                            logger.warn("Invalid time format: {}. Skipping time.", dto.getTime());
                         }
-                        if (checkOut != null && !checkOut.isEmpty()) {
-                            acc.setCheckOutDate(LocalDateTime.parse(checkOut));
-                        }
-                    } catch (DateTimeParseException e) {
-                        logger.warn("Invalid date format for accommodation: {}. Skipping dates.", e.getMessage());
-                    }
-                    acc.setLatitude(parseDoubleOrDefault(accData.get("latitude"), 0.0));
-                    acc.setLongitude(parseDoubleOrDefault(accData.get("longitude"), 0.0));
-                    acc.setTravelPlan(travelPlan);
-                    travelPlan.getTravelAccommodations().add(acc);
-                }
-            }
+                        place.setTravelPlan(travelPlan);
+                        return place;
+                    })
+                    .collect(Collectors.toList())
+                    : new ArrayList<>();
 
-            // 이동 수단 처리
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> transportations = (List<Map<String, Object>>) planData.get("transportations");
-            if (transportations != null) {
-                for (Map<String, Object> transData : transportations) {
-                    TravelTransportation trans = new TravelTransportation();
-                    try {
-                        String typeStr = (String) transData.get("type");
-                        if (typeStr != null && !typeStr.isEmpty()) {
-                            trans.setType(Type.valueOf(typeStr));
-                        } else {
-                            logger.warn("Transportation type is null or empty. Skipping.");
-                            continue;
+            // TravelAccommodation 리스트 생성
+            List<TravelAccommodation> accommodations = request.getAccommodations() != null
+                    ? request.getAccommodations().stream()
+                    .map(dto -> {
+                        TravelAccommodation acc = new TravelAccommodation();
+                        acc.setName(dto.getName());
+                        acc.setAddress(dto.getAddress());
+                        acc.setDay(dto.getDay());
+                        acc.setDescription(dto.getDescription());
+                        acc.setLatitude(dto.getLatitude() != null ? dto.getLatitude() : 0.0);
+                        acc.setLongitude(dto.getLongitude() != null ? dto.getLongitude() : 0.0);
+                        try {
+                            if (dto.getCheckInDate() != null && !dto.getCheckInDate().isEmpty()) {
+                                acc.setCheckInDate(LocalDateTime.parse(dto.getCheckInDate()));
+                            }
+                            if (dto.getCheckOutDate() != null && !dto.getCheckOutDate().isEmpty()) {
+                                acc.setCheckOutDate(LocalDateTime.parse(dto.getCheckOutDate()));
+                            }
+                        } catch (DateTimeParseException e) {
+                            logger.warn("Invalid date format for accommodation: {}. Skipping dates.", e.getMessage());
                         }
-                    } catch (IllegalArgumentException e) {
-                        logger.warn("Invalid transportation type: {}. Skipping.", transData.get("type"));
-                        continue;
-                    }
-                    trans.setDay((String) transData.get("day"));
-                    trans.setTravelPlan(travelPlan);
-                    travelPlan.getTravelTransportations().add(trans);
-                }
-            }
+                        acc.setTravelPlan(travelPlan);
+                        return acc;
+                    })
+                    .collect(Collectors.toList())
+                    : new ArrayList<>();
 
-            travelPlanRepository.save(travelPlan);
-            logger.info("Travel plan saved successfully for user: {}, city: {}, planType: MY", userId, travelPlan.getCity());
+            // TravelTransportation 리스트 생성
+            List<TravelTransportation> transportations = request.getTransportations() != null
+                    ? request.getTransportations().stream()
+                    .map(dto -> {
+                        TravelTransportation trans = new TravelTransportation();
+                        try {
+                            if (dto.getType() != null && !dto.getType().isEmpty()) {
+                                trans.setType(Type.valueOf(dto.getType()));
+                            } else {
+                                logger.warn("Transportation type is null or empty. Skipping.");
+                                return null;
+                            }
+                        } catch (IllegalArgumentException e) {
+                            logger.warn("Invalid transportation type: {}. Skipping.", dto.getType());
+                            return null;
+                        }
+                        trans.setDay(dto.getDay());
+                        trans.setTravelPlan(travelPlan);
+                        return trans;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList())
+                    : new ArrayList<>();
+
+            // TravelPlan에 리스트 설정
+            travelPlan.setTravelPlaces(places);
+            travelPlan.setTravelAccommodations(accommodations);
+            travelPlan.setTravelTransportations(transportations);
+
+            // TravelPlan 저장
+            TravelPlan savedPlan = travelPlanRepository.save(travelPlan);
+            logger.info("Travel plan saved successfully for user: {}, city: {}, planType: {}", userId, savedPlan.getCity(), savedPlan.getPlanType());
+
+            // TravelPlanResponse 생성
+            return TravelPlanResponse.builder()
+                    .id(savedPlan.getId())
+                    .destination(savedPlan.getCity())
+                    .startDate(savedPlan.getStartDate().format(DateTimeFormatter.ISO_LOCAL_DATE))
+                    .endDate(savedPlan.getEndDate().format(DateTimeFormatter.ISO_LOCAL_DATE))
+                    .planType(savedPlan.getPlanType())
+                    .status("예정")
+                    .build();
         } catch (Exception e) {
             logger.error("Error saving travel plan: {}", e.getMessage(), e);
             throw new RuntimeException("여행 계획 저장 중 오류 발생: " + e.getMessage());
@@ -162,38 +189,47 @@ public class TravelPlanService {
     }
 
     @Transactional(readOnly = true)
-    public List<TravelPlanResponseDto> findTravelPlansByUserId(String userId) {
-        List<TravelPlan> plans = travelPlanRepository.findByAccountEmail(userId);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        LocalDate now = LocalDate.now();
+    public List<TravelPlanResponse> getPlansByUserId(String userId) {
+        try {
+            List<TravelPlan> plans = travelPlanRepository.findByAccountEmail(userId);
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+            LocalDate now = LocalDate.now();
 
-        return plans.stream().map(plan -> {
-            TravelPlanResponseDto dto = new TravelPlanResponseDto();
-            dto.setId(plan.getId());
-            dto.setDestination(plan.getCity());
-            dto.setStartDate(plan.getStartDate() != null ? plan.getStartDate().format(formatter) : now.format(formatter));
-            dto.setEndDate(plan.getEndDate() != null ? plan.getEndDate().format(formatter) : now.format(formatter));
-            try {
-                LocalDate endLocalDate = LocalDate.parse(dto.getEndDate(), formatter);
-                dto.setStatus(now.isAfter(endLocalDate) ? "완료" : "예정");
-            } catch (Exception e) {
-                dto.setStatus("예정");
-            }
-            dto.setPlanType(plan.getPlanType() != null ? plan.getPlanType() : "MY");
-            return dto;
-        }).collect(Collectors.toList());
+            return plans.stream().map(plan -> {
+                TravelPlanResponse response = TravelPlanResponse.builder()
+                        .id(plan.getId())
+                        .destination(plan.getCity())
+                        .startDate(plan.getStartDate().format(formatter))
+                        .endDate(plan.getEndDate().format(formatter))
+                        .planType(plan.getPlanType())
+                        .build();
+                try {
+                    LocalDate endDate = LocalDate.parse(response.getEndDate(), formatter);
+                    response.setStatus(now.isAfter(endDate) ? "완료" : "예정");
+                } catch (DateTimeParseException e) {
+                    logger.warn("Invalid end_date format: {}. Setting status to '예정'.", response.getEndDate());
+                    response.setStatus("예정");
+                }
+                return response;
+            }).collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error fetching travel plans: {}", e.getMessage(), e);
+            throw new RuntimeException("여행 계획 조회 중 오류: " + e.getMessage());
+        }
     }
 
-    private double parseDoubleOrDefault(Object value, double defaultValue) {
-        if (value == null) {
-            return defaultValue;
+    private LocalDate parseDate(String dateStr, String fieldName) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            logger.warn("Missing {}: {}. Using current date.", fieldName, dateStr);
+            return LocalDate.now();
         }
         try {
-            return Double.parseDouble(String.valueOf(value));
-        } catch (NumberFormatException e) {
-            logger.warn("Invalid number format for value: {}. Using default: {}", value, defaultValue);
-            return defaultValue;
+            return LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            logger.warn("Invalid {} format: {}. Using current date.", fieldName, dateStr);
+            return LocalDate.now();
         }
     }
 }
+
 

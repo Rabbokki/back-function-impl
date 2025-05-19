@@ -2,8 +2,7 @@ package com.backfunctionimpl.travel.travelPlan.entity;
 
 import com.backfunctionimpl.account.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,6 +11,9 @@ import java.time.LocalDateTime;
 @Table(name = "ai_plans")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiPlan extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +27,7 @@ public class AiPlan extends BaseEntity {
 
     @Column(name = "itinerary_data", columnDefinition = "JSON")
     private String itineraryData;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 
@@ -33,6 +36,12 @@ public class AiPlan extends BaseEntity {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    @Column(name = "plan_type", nullable = false, columnDefinition = "VARCHAR(10) DEFAULT 'MY'")
+
+    @Column(name = "plan_type", nullable = false, columnDefinition = "VARCHAR(10) DEFAULT 'AI'")
     private String planType;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

@@ -1,11 +1,13 @@
 package com.backfunctionimpl.travel.travelPlan.dto;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class TravelPlanResponseDto {
+@Builder
+public class TravelPlanResponse {
     private Long id;
     private String destination;
     private String startDate;
