@@ -53,6 +53,16 @@ public class JwtUtil {
     // header 토큰을 가져오는 기능
     public String getHeaderToken(HttpServletRequest request, String headerName) {
         String token = request.getHeader(headerName);
+
+        if (token == null && "Authorization".equalsIgnoreCase(headerName)) {
+            token = request.getHeader("authorization"); // ✅ 소문자 대응
+        }
+
+        if ("Authorization".equalsIgnoreCase(headerName) && token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7); // "Bearer " 제거
+        }
+
+
         log.info("Header {} value: {}", headerName, token); // 디버깅용 로그 추가
         return token;
     }
