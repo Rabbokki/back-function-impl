@@ -39,7 +39,6 @@ spring:
       force: true
       charset: UTF-8
 
-
   security:
     oauth2:
       client:
@@ -76,6 +75,9 @@ spring:
 
   cache:
     type: redis
+
+fastapi:
+  api-key: my_unique_secure_key_12345
 
 jwt:
   secret:

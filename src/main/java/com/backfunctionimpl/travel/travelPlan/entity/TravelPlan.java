@@ -7,22 +7,36 @@ import com.backfunctionimpl.travel.travelFlight.entity.TravelFlight;
 import com.backfunctionimpl.travel.travelPlace.entity.TravelPlace;
 import com.backfunctionimpl.travel.travelTransportation.entity.TravelTransportation;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
+@Table(name = "travel_plans")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TravelPlan extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    @Column(name = "start_date")
     private LocalDate startDate;
+
+    @Column(name = "end_date")
     private LocalDate endDate;
+
+    @Column(name = "country")
     private String country;
+
+    @Column(name = "city")
     private String city;
-    private String place;
+    @Column(name = "plan_type", nullable = false, columnDefinition = "VARCHAR(10) DEFAULT 'MY'")
+    private String planType;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "a_id")
     private Account account;
