@@ -1,6 +1,7 @@
 package com.backfunctionimpl.post.service;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.account.repository.AccountRepository;
 import com.backfunctionimpl.post.dto.PostDto;
 import com.backfunctionimpl.post.entity.Image;
 import com.backfunctionimpl.post.entity.Post;
@@ -21,6 +22,7 @@ import java.util.List;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final AccountRepository accountRepository;
     private final S3Service s3Service;
 
     // 게시글 생성
@@ -58,6 +60,9 @@ public class PostService {
         post.setTags(tags);
 
         Post saved = postRepository.save(post);
+
+        account.addExp(15);
+        accountRepository.save(account);
 
         return new PostDto(
                 saved.getId(),
@@ -274,6 +279,28 @@ public class PostService {
         postRepository.save(post);
     }
 
+    public void addReport(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        if (!post.isReported()) {
+            post.setReported(true);
+            // 게시글 저장
+            postRepository.save(post);
+        }
+    }
+
+    public void removeReport(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        if (post.isReported()) {
+            post.setReported(false);
+            // 게시글 저장
+            postRepository.save(post);
+        }
+    }
+
     // 뷰 처리
     public void addView(Long postId) {
         Post post = postRepository.findById(postId)
@@ -285,4 +312,5 @@ public class PostService {
         // 게시글 저장
         postRepository.save(post);
     }
+
 }

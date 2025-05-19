@@ -104,6 +104,18 @@ public class PostController {
         postService.likePost(id, userDetails.getAccount());
         return ResponseEntity.ok(Map.of("message", "좋아요 처리 완료"));
     }
+    // 시고 처리
+    @PutMapping("/{id}/reportAdd")
+    public ResponseEntity<?> reportPost(@PathVariable("id") Long id) {
+        postService.addReport(id);
+        return ResponseEntity.ok(Map.of("message", "신고 처리 완료"));
+    }
+
+    @PutMapping("/{id}/reportRemove")
+    public ResponseEntity<?> unreportPost(@PathVariable("id") Long id) {
+        postService.removeReport(id);
+        return ResponseEntity.ok(Map.of("message", "신고 삭제 완료"));
+    }
 
     // 뷰 처리
     @PutMapping("/{id}/view")

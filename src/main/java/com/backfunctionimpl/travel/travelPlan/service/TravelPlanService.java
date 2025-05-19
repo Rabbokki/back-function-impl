@@ -70,6 +70,10 @@ public class TravelPlanService {
         transportation.setType(Type.valueOf(dto.getTransportation()));
         transportation.setTravelPlan(plan);
         travelTransportationRepository.save(transportation);
+
+        account.addExp(20);
+        accountRepository.save(account);
+
     }
 }
 
