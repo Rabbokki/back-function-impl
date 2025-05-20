@@ -15,4 +15,6 @@ public interface SavedPlaceRepository extends JpaRepository<SavedPlace, Long> {
     Optional<SavedPlace> findByPlaceIdAndAccount(String placeId, Account account);
 
     boolean existsByPlaceIdAndAccount(String placeId, Account account);
+
+
 }

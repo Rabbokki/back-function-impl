@@ -21,6 +21,9 @@ public class Review extends BaseEntity {
     @Column(name = "place_id", nullable = false)
     private String placeId;
 
+    @Column(name = "place_name", nullable = false, length = 300)
+    private String placeName;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_account_id")
     private Account account;
@@ -34,15 +37,16 @@ public class Review extends BaseEntity {
     @Column(length = 1000)
     private String content;
 
-    // 이 postId는 DB 컬럼으로 만들지 않음
     @Transient
     private Long postId;
 
-    public Review(String placeId, Account account, int rating, String nickname, String content) {
+    public Review(String placeId, String placeName, Account account, int rating, String nickname, String content) {
         this.placeId = placeId;
+        this.placeName = placeName;
         this.account = account;
         this.rating = rating;
         this.nickname = nickname;
         this.content = content;
     }
 }
+

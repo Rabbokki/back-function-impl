@@ -1,6 +1,7 @@
 package com.backfunctionimpl.travel.travelPlace.service;
 
 import com.backfunctionimpl.account.entity.Account;
+import com.backfunctionimpl.global.dto.ResponseDto;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceRequestDto;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceResponseDto;
 import com.backfunctionimpl.travel.travelPlace.entity.SavedPlace;
@@ -21,14 +22,14 @@ public class SavedPlaceService {
 
     private final SavedPlaceRepository savedPlaceRepository;
 
-    public SavedPlace save(SavedPlaceRequestDto dto, Account account) {
-        // 기본값 설정
+    public ResponseDto<?> save(SavedPlaceRequestDto dto, Account account) {
+        if (savedPlaceRepository.existsByPlaceIdAndAccount(dto.getPlaceId(), account)) {
+            return ResponseDto.fail("409", "이미 저장된 명소입니다.");
+        }
+
         String name = dto.getName() != null ? dto.getName() : "이름없음";
         String city = dto.getCity() != null ? dto.getCity() : "도시없음";
-
-        // ✅ city 기반 국가 자동 매핑
         String country = CountryCityMapper.getCountry(city);
-
         String type = dto.getType() != null ? dto.getType() : "명소";
 
         log.info("📝 저장 요청 - name: {}, city: {}, country: {}, type: {}", name, city, country, type);
@@ -42,9 +43,10 @@ public class SavedPlaceService {
         place.setType(type);
         place.setAccount(account);
 
-        return savedPlaceRepository.save(place);
-    }
+        savedPlaceRepository.save(place);
 
+        return ResponseDto.success("저장 성공");
+    }
 
     public List<SavedPlaceResponseDto> getSavedPlaces(Account account) {
         log.info("🛠 [service] 저장된 장소 조회 시작 for account id={}", account.getId());

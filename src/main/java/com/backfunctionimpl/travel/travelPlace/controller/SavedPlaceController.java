@@ -2,6 +2,7 @@ package com.backfunctionimpl.travel.travelPlace.controller;
 
 import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.account.repository.AccountRepository;
+import com.backfunctionimpl.global.dto.ResponseDto;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceRequestDto;
 import com.backfunctionimpl.travel.travelPlace.dto.SavedPlaceResponseDto;
 import com.backfunctionimpl.travel.travelPlace.entity.SavedPlace;
@@ -39,13 +40,15 @@ public class SavedPlaceController {
         Account account = accountRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("회원 정보를 찾을 수 없습니다."));
 
-        savedPlaceService.save(dto, account);
+        // ✅ 저장 요청
+        ResponseDto<?> response = savedPlaceService.save(dto, account);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "저장 완료");
-        response.put("data", null); // ← Map.of() 말고 HashMap 사용!
+        // ✅ 이미 저장된 명소인 경우 (409)
+        if (!response.isSuccess() && response.getError().getCode().equals("409")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        }
 
+        // ✅ 정상 저장
         return ResponseEntity.ok(response);
     }
 

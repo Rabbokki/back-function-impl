@@ -18,4 +18,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     List<Review> findWithAccountByPlaceId(@Param("placeId") String placeId);
 
     Optional<Review> findByPlaceIdAndAccount(String placeId, Account account);
+
+    List<Review> findByAccount(Account account);
+
 }

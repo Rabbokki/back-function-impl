@@ -43,6 +43,7 @@ public class ReviewService {
     public ResponseDto<?> addPlaceReview(ReviewDto dto, Account account) {
         Review review = new Review(
                 dto.getPlaceId(),
+                dto.getPlaceName(), // ✅ 명소 이름도 저장
                 account,
                 dto.getRating(),
                 account.getNickname(),
@@ -59,16 +60,21 @@ public class ReviewService {
 
     // ✅ 3. 리뷰 삭제
     @Transactional
-    public ResponseDto<?> removeReview(String placeId, Account account) {
-        Optional<Review> review = reviewRepository.findByPlaceIdAndAccount(placeId, account);
+    public ResponseDto<?> removeReviewById(Long reviewId, Account account) {
+        Optional<Review> optional = reviewRepository.findById(reviewId);
 
-        if (review.isEmpty()) {
-            return ResponseDto.fail("404", "작성한 리뷰가 존재하지 않습니다.");
+        if (optional.isEmpty()) {
+            return ResponseDto.fail("404", "리뷰가 존재하지 않습니다.");
         }
 
-        Long deletedId = review.get().getId(); // 삭제될 리뷰의 ID
-        reviewRepository.delete(review.get());
+        Review review = optional.get();
 
-        return ResponseDto.success(Map.of("deletedId", deletedId)); // ✅ ID 포함해서 응답
+        if (!review.getAccount().getId().equals(account.getId())) {
+            return ResponseDto.fail("403", "본인의 리뷰만 삭제할 수 있습니다.");
+        }
+
+        reviewRepository.delete(review);
+        return ResponseDto.success(Map.of("deletedId", reviewId));
     }
+
 }

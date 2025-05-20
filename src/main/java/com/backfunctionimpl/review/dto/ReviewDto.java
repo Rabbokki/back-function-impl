@@ -11,6 +11,7 @@ import lombok.Setter;
 public class ReviewDto {
     private Long id;
     private String placeId;
+    private String placeName;
     private Long accountId;
     private int rating;
     private String nickname;
@@ -19,6 +20,7 @@ public class ReviewDto {
     public ReviewDto(Review review) {
         this.id = review.getId();
         this.placeId = review.getPlaceId();
+        this.placeName = review.getPlaceName();
         this.accountId = review.getAccount().getId();
         this.rating = review.getRating();
         this.nickname = review.getNickname();
