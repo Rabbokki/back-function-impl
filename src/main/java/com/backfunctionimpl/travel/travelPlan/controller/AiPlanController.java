@@ -48,7 +48,6 @@ public class AiPlanController {
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Generating AI plan for user: {}, request: {}", userDetails.getUsername(), request);
         try {
-            // FastAPI 요청 본문 생성
             Map<String, Object> fastApiRequest = new HashMap<>();
             fastApiRequest.put("destination", request.getDestination());
             fastApiRequest.put("preferences", request.getPreferences());
@@ -66,7 +65,6 @@ public class AiPlanController {
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(fastApiRequest, headers);
 
-            // FastAPI 호출 (Map<String, Object>로 응답 처리)
             ResponseEntity<Map> fastApiResponse = restTemplate.exchange(
                     "http://localhost:8000/api/generate-itinerary",
                     HttpMethod.POST,
@@ -88,13 +86,12 @@ public class AiPlanController {
 
             logger.info("FastAPI itinerary response: {}", itinerary);
 
-            // AiPlanRequest에 FastAPI 결과 매핑
             request.setItinerary(itinerary);
             request.setUserId(userDetails.getUsername());
 
-            // AiPlanService 호출
             AiPlanResponse savedPlan = aiPlanService.generateAiPlan(request, userDetails.getUsername());
-            logger.info("AI plan generated and saved for user: {}, destination: {}", userDetails.getUsername(), savedPlan.getDestination());
+            logger.info("AI plan generated and saved for user: {}, destination: {}, id: {}",
+                    userDetails.getUsername(), savedPlan.getDestination(), savedPlan.getId());
             return ResponseEntity.ok(savedPlan);
         } catch (HttpClientErrorException e) {
             logger.error("FastAPI error: Status {}, Response: {}", e.getStatusCode(), e.getResponseBodyAsString());
