@@ -101,6 +101,7 @@ public class AccountService {
                 .build();
         refreshTokenRepository.save(refreshToken);
 
+        System.out.println("로그인 성공");
 
         // 5. 발급된 토큰 반환
         return tokenDto;
