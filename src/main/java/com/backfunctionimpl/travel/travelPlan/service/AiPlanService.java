@@ -45,25 +45,21 @@ public class AiPlanService {
             logger.info("Received AI plan request: destination={}, startDate={}, endDate={}, userId={}",
                     request.getDestination(), request.getStartDate(), request.getEndDate(), userId);
 
-            // Account 조회
             Account account = accountRepository.findByEmail(userId)
                     .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-            // 날짜 파싱
             LocalDate startDate = parseDate(request.getStartDate(), "startDate");
             LocalDate endDate = parseDate(request.getEndDate(), "endDate");
 
-            // itinerary를 JSON 문자열로 변환
             String itineraryJson = objectMapper.writeValueAsString(request.getItinerary());
 
-            // 중복 일정 확인
             List<AiPlan> existingPlans = aiPlanRepository.findByUserIdAndDestinationAndStartDateAndEndDate(
                     userId, request.getDestination(), startDate, endDate);
             AiPlan aiPlan;
             if (!existingPlans.isEmpty()) {
                 logger.warn("Duplicate AI plan found for user: {}, destination: {}, startDate: {}, endDate: {}",
                         userId, request.getDestination(), startDate, endDate);
-                aiPlan = existingPlans.get(0); // 첫 번째 일정 사용
+                aiPlan = existingPlans.get(0);
             } else {
                 aiPlan = AiPlan.builder()
                         .userId(userId)
@@ -75,14 +71,10 @@ public class AiPlanService {
                         .build();
             }
 
-            // 일정 업데이트
             aiPlan.setItineraryData(itineraryJson);
-
-            // 저장
             AiPlan savedPlan = aiPlanRepository.save(aiPlan);
             logger.info("AI plan saved successfully for user: {}, destination: {}", userId, savedPlan.getDestination());
 
-            // Response 생성
             List<Map<String, Object>> itineraryResponse = objectMapper.readValue(
                     savedPlan.getItineraryData(),
                     new TypeReference<List<Map<String, Object>>>() {}
@@ -107,24 +99,39 @@ public class AiPlanService {
             logger.info("Generating AI plan for user: {}, destination: {}, startDate: {}, endDate: {}",
                     userId, request.getDestination(), request.getStartDate(), request.getEndDate());
 
-            // Account 조회
             Account account = accountRepository.findByEmail(userId)
                     .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-            // 날짜 파싱
             LocalDate startDate = parseDate(request.getStartDate(), "startDate");
             LocalDate endDate = parseDate(request.getEndDate(), "endDate");
 
-            // itinerary 확인
+            // 중복 일정 확인
+            List<AiPlan> existingPlans = aiPlanRepository.findByUserIdAndDestinationAndStartDateAndEndDate(
+                    userId, request.getDestination(), startDate, endDate);
+            if (!existingPlans.isEmpty()) {
+                logger.warn("Duplicate AI plan found for user: {}, destination: {}, startDate: {}, endDate: {}",
+                        userId, request.getDestination(), startDate, endDate);
+                AiPlan existingPlan = existingPlans.get(0);
+                List<Map<String, Object>> itineraryResponse = objectMapper.readValue(
+                        existingPlan.getItineraryData(),
+                        new TypeReference<List<Map<String, Object>>>() {}
+                );
+                return AiPlanResponse.builder()
+                        .id(existingPlan.getId())
+                        .destination(existingPlan.getDestination())
+                        .startDate(existingPlan.getStartDate().format(DateTimeFormatter.ISO_LOCAL_DATE))
+                        .endDate(existingPlan.getEndDate().format(DateTimeFormatter.ISO_LOCAL_DATE))
+                        .itinerary(itineraryResponse)
+                        .build();
+            }
+
             if (request.getItinerary() == null || request.getItinerary().isEmpty()) {
                 logger.warn("Itinerary is null or empty, generating dummy itinerary");
                 request.setItinerary(generateDummyItinerary(request.getDestination(), startDate, endDate));
             }
 
-            // itinerary를 JSON 문자열로 변환
             String itineraryJson = objectMapper.writeValueAsString(request.getItinerary());
 
-            // AI 일정 저장
             AiPlan aiPlan = AiPlan.builder()
                     .userId(userId)
                     .destination(request.getDestination())
@@ -137,7 +144,6 @@ public class AiPlanService {
             AiPlan savedPlan = aiPlanRepository.save(aiPlan);
             logger.info("AI plan generated and saved successfully for user: {}, destination: {}", userId, savedPlan.getDestination());
 
-            // Response 생성
             List<Map<String, Object>> itineraryResponse = objectMapper.readValue(
                     savedPlan.getItineraryData(),
                     new TypeReference<List<Map<String, Object>>>() {}
@@ -214,35 +220,21 @@ public class AiPlanService {
         long days = startDate.until(endDate).getDays() + 1;
         List<Map<String, Object>> itinerary = new ArrayList<>();
 
-        // Day 1
         Map<String, Object> day1 = new HashMap<>();
         day1.put("day", 1);
         List<Map<String, Object>> day1Activities = List.of(
-                Map.of(
-                        "activity", "City Tour",
-                        "description", "Explore the main attractions of " + destination
-                ),
-                Map.of(
-                        "activity", "Local Market",
-                        "description", "Visit a traditional market in " + destination
-                )
+                Map.of("activity", "City Tour", "description", "Explore the main attractions of " + destination),
+                Map.of("activity", "Local Market", "description", "Visit a traditional market in " + destination)
         );
         day1.put("activities", day1Activities);
         itinerary.add(day1);
 
-        // Day 2 (if applicable)
         if (days >= 2) {
             Map<String, Object> day2 = new HashMap<>();
             day2.put("day", 2);
             List<Map<String, Object>> day2Activities = List.of(
-                    Map.of(
-                            "activity", "Museum Visit",
-                            "description", "Discover the history of " + destination
-                    ),
-                    Map.of(
-                            "activity", "Evening Walk",
-                            "description", "Enjoy the night scenery of " + destination
-                    )
+                    Map.of("activity", "Museum Visit", "description", "Discover the history of " + destination),
+                    Map.of("activity", "Evening Walk", "description", "Enjoy the night scenery of " + destination)
             );
             day2.put("activities", day2Activities);
             itinerary.add(day2);
