@@ -108,6 +108,7 @@ public class AccountService {
     }
 
     //로그아웃
+    @Transactional
     public void logout(String email) {
         refreshTokenRepository.deleteByAccountEmail(email);
     }

@@ -60,6 +60,4 @@ public class LikeController {
         boolean isLiked = likeService.isCommentLiked(commentId, userDetails.getAccount());
         return ResponseDto.success(isLiked);
     }
-
-
 }
