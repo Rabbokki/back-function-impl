@@ -27,6 +27,8 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -41,35 +43,74 @@ public class KakaoPayService {
     @Value("${kakaopay.cid}")
     private String cid;
 
-    @Value("${kakaopay.admin-key}")
-    private String adminKey;
+    @Value("${kakaopay.secret-key}")
+    private String secretKey;
 
-    @Value("${kakaopay.api.base-url}")
-    private String kakaoPayBaseUrl;
+    @Value("${kakaopay.ready-url}")
+    private String readyUrl;
+
+    @Value("${kakaopay.approve-api-url}")
+    private String approveApiUrl;
+
+    @Value("${kakaopay.cancel-api-url}")
+    private String cancelApiUrl;
+
+    @Value("${kakaopay.order-api-url}")
+    private String orderApiUrl;
 
     @Value("${kakaopay.approval-url}")
     private String approvalUrl;
 
     @Value("${kakaopay.cancel-url}")
-    private String cancelUrl;
+    private String cancelRedirectUrl;
 
     @Value("${kakaopay.fail-url}")
     private String failUrl;
 
-    @Value("${kakaopay.api.ready-url}")
-    private String readyUrl;
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
+    private String normalizePartnerUserId(String userId) {
+        if (userId == null || userId.trim().isEmpty() || !EMAIL_PATTERN.matcher(userId).matches()) {
+            String normalized = "user_" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 20) + "@example.com";
+            log.warn("유효하지 않은 partner_user_id: {}. 대체 값 사용: {}", userId, normalized);
+            return normalized;
+        }
+        // 특수문자 제거 및 길이 제한
+        String sanitized = userId.replaceAll("[^a-zA-Z0-9@._-]", "").substring(0, Math.min(userId.length(), 100));
+        if (!EMAIL_PATTERN.matcher(sanitized).matches()) {
+            String normalized = "user_" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 20) + "@example.com";
+            log.warn("정규화 후에도 유효하지 않은 partner_user_id: {}. 대체 값 사용: {}", sanitized, normalized);
+            return normalized;
+        }
+        return sanitized;
+    }
 
     @Transactional
     public PaymentResponse preparePayment(PaymentRequest request) {
         log.info("카카오페이 결제 준비 시작: flightId={}", request.getFlightId());
-        log.debug("사용 중인 CID: {}, Admin Key: {}", cid, adminKey);
+        log.debug("사용 중인 CID: {}, Secret Key: {}", cid, secretKey);
+
         try {
             // DNS 확인 디버깅
             try {
-                InetAddress address = InetAddress.getByName("kapi.kakao.com");
-                log.info("DNS 확인 성공: kapi.kakao.com -> {}", address.getHostAddress());
+                InetAddress address = InetAddress.getByName("open-api.kakaopay.com");
+                log.info("DNS 확인 성공: open-api.kakaopay.com -> {}", address.getHostAddress());
             } catch (UnknownHostException e) {
-                log.error("DNS 확인 실패: kapi.kakao.com", e);
+                log.error("DNS 확인 실패: open-api.kakaopay.com", e);
+            }
+
+            // 요청 파라미터 검증
+            if (request.getFlightId() == null || request.getFlightId().trim().isEmpty()) {
+                log.error("flightId가 누락되었습니다.");
+                return new PaymentResponse(false, "항공편 ID가 누락되었습니다.", null, null, null);
+            }
+            if (request.getPassengerCount() <= 0) {
+                log.error("잘못된 탑승객 수: passengerCount={}", request.getPassengerCount());
+                return new PaymentResponse(false, "탑승객 수는 1명 이상이어야 합니다.", null, null, null);
+            }
+            if (request.getTotalPrice() == null || request.getTotalPrice().intValue() <= 0) {
+                log.error("잘못된 결제 금액: totalPrice={}", request.getTotalPrice());
+                return new PaymentResponse(false, "결제 금액이 유효하지 않습니다.", null, null, null);
             }
 
             // 항공편 조회
@@ -83,15 +124,15 @@ public class KakaoPayService {
 
             // 파트너 정보 생성
             String partnerOrderId = "ORDER_" + request.getFlightId() + "_" + System.currentTimeMillis();
-            String partnerUserId = request.getContact().getEmail() != null
-                    ? request.getContact().getEmail()
-                    : "user_" + System.currentTimeMillis();
+            String partnerUserId = normalizePartnerUserId(
+                    request.getContact() != null ? request.getContact().getEmail() : null
+            );
             log.debug("파트너 정보: partnerOrderId={}, partnerUserId={}", partnerOrderId, partnerUserId);
 
             // 카카오페이 결제 준비 요청
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.set("Authorization", "KakaoAK " + adminKey);
+            headers.set("Authorization", "SECRET_KEY " + secretKey);
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("cid", cid);
@@ -99,10 +140,10 @@ public class KakaoPayService {
             params.add("partner_user_id", partnerUserId);
             params.add("item_name", "항공권 (" + request.getPassengerCount() + "명)");
             params.add("quantity", String.valueOf(request.getPassengerCount()));
-            params.add("total_amount", String.valueOf(request.getTotalPrice().intValue()));
+            params.add("total_amount", String.valueOf(request.getTotalPrice().intValue())); // 정수로 변환
             params.add("tax_free_amount", "0");
             params.add("approval_url", approvalUrl);
-            params.add("cancel_url", cancelUrl);
+            params.add("cancel_url", cancelRedirectUrl);
             params.add("fail_url", failUrl);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
@@ -114,14 +155,15 @@ public class KakaoPayService {
                 response = restTemplate.postForObject(readyUrl, requestEntity, Map.class);
             } catch (HttpClientErrorException e) {
                 log.error("카카오페이 API 호출 실패: 상태 코드={}, 응답 본문={}, 헤더={}",
-                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders(), e);
-                return new PaymentResponse(false, "카카오페이 결제 준비 중 오류: " + e.getStatusText() + " - " + e.getResponseBodyAsString(), null, null, null);
+                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders());
+                String errorMessage = String.format("카카오페이 결제 준비 중 오류: %s - %s", e.getStatusText(), e.getResponseBodyAsString());
+                return new PaymentResponse(false, errorMessage, null, null, null);
             } catch (ResourceAccessException e) {
                 if (e.getCause() instanceof UnknownHostException) {
-                    log.error("카카오페이 서버에 연결할 수 없습니다: 호스트={}, 원인={}", readyUrl, e.getMessage(), e);
+                    log.error("카카오페이 서버에 연결할 수 없습니다: 호스트={}, 원인={}", readyUrl, e.getMessage());
                     return new PaymentResponse(false, "카카오페이 서버에 연결할 수 없습니다: DNS 확인 실패", null, null, null);
                 }
-                log.error("카카오페이 API 호출 중 네트워크 오류: {}", e.getMessage(), e);
+                log.error("카카오페이 API 호출 중 네트워크 오류: {}", e.getMessage());
                 return new PaymentResponse(false, "카카오페이 서버에 연결할 수 없습니다: " + e.getMessage(), null, null, null);
             }
 
@@ -145,8 +187,8 @@ public class KakaoPayService {
             payment.setTotalAmount(request.getTotalPrice());
             payment.setPassengerCount(request.getPassengerCount());
             payment.setSeats(objectMapper.writeValueAsString(request.getSelectedSeats()));
-            payment.setContactEmail(request.getContact().getEmail());
-            payment.setContactPhone(request.getContact().getPhone());
+            payment.setContactEmail(request.getContact() != null ? request.getContact().getEmail() : null);
+            payment.setContactPhone(request.getContact() != null ? request.getContact().getPhone() : null);
             paymentRepository.save(payment);
             log.info("결제 정보 저장 완료: paymentId={}", payment.getId());
 
@@ -158,7 +200,7 @@ public class KakaoPayService {
             return paymentResponse;
 
         } catch (Exception e) {
-            log.error("카카오페이 결제 준비 중 오류: message={}, stackTrace={}", e.getMessage(), e.getStackTrace());
+            log.error("카카오페이 결제 준비 중 예외 발생: message={}, stackTrace={}", e.getMessage(), e.getStackTrace());
             return new PaymentResponse(false, "카카오페이 결제 준비 중 오류: " + e.getMessage(), null, null, null);
         }
     }
@@ -166,27 +208,38 @@ public class KakaoPayService {
     @Transactional
     public PaymentResponse approvePayment(String tid, String pgToken, String partnerOrderId, String partnerUserId) {
         try {
+            // 입력 파라미터 검증
+            if (tid == null || tid.trim().isEmpty()) {
+                log.error("tid가 누락되었습니다.");
+                return new PaymentResponse(false, "결제 고유번호(tid)가 누락되었습니다.", null, null, null);
+            }
+            if (pgToken == null || pgToken.trim().isEmpty()) {
+                log.error("pgToken이 누락되었습니다.");
+                return new PaymentResponse(false, "결제 인증 토큰(pgToken)이 누락되었습니다.", null, null, null);
+            }
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.set("Authorization", "KakaoAK " + adminKey);
+            headers.set("Authorization", "SECRET_KEY " + secretKey);
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("cid", cid);
             params.add("tid", tid);
             params.add("partner_order_id", partnerOrderId);
-            params.add("partner_user_id", partnerUserId);
+            params.add("partner_user_id", normalizePartnerUserId(partnerUserId));
             params.add("pg_token", pgToken);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
-            log.info("카카오페이 결제 승인 요청: URL={}, Headers={}, Params={}",
-                    kakaoPayBaseUrl + "/v1/payment/approve", headers, params);
+            log.info("카카오페이 결제 승인 요청: URL={}, Headers={}, Params={}", approveApiUrl, headers, params);
+
             Map<String, Object> response;
             try {
-                response = restTemplate.postForObject(kakaoPayBaseUrl + "/v1/payment/approve", requestEntity, Map.class);
+                response = restTemplate.postForObject(approveApiUrl, requestEntity, Map.class);
             } catch (HttpClientErrorException e) {
                 log.error("카카오페이 결제 승인 실패: 상태 코드={}, 응답 본문={}, 헤더={}",
-                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders(), e);
-                return new PaymentResponse(false, "카카오페이 결제 승인 중 오류: " + e.getStatusText() + " - " + e.getResponseBodyAsString(), null, null, null);
+                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders());
+                String errorMessage = String.format("카카오페이 결제 승인 중 오류: %s - %s", e.getStatusText(), e.getResponseBodyAsString());
+                return new PaymentResponse(false, errorMessage, null, null, null);
             }
 
             log.info("카카오페이 결제 승인 응답: {}", response);
@@ -205,7 +258,7 @@ public class KakaoPayService {
             payment.setStatus("SUCCESS");
             paymentRepository.save(payment);
 
-            return new PaymentResponse(true, "결제가 완료되었습니다.", tid, null, null);
+            return new PaymentResponse(true, "결제가 완료되었습니다.", tid, null, "SUCCESS");
         } catch (Exception e) {
             log.error("카카오페이 결제 승인 중 오류: {}", e.getMessage(), e);
             return new PaymentResponse(false, "결제 승인 중 오류가 발생했습니다: " + e.getMessage(), null, null, null);
@@ -214,24 +267,31 @@ public class KakaoPayService {
 
     public PaymentResponse checkPaymentStatus(String tid) {
         try {
+            // 입력 파라미터 검증
+            if (tid == null || tid.trim().isEmpty()) {
+                log.error("tid가 누락되었습니다.");
+                return new PaymentResponse(false, "결제 고유번호(tid)가 누락되었습니다.", null, null, null);
+            }
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.set("Authorization", "KakaoAK " + adminKey);
+            headers.set("Authorization", "SECRET_KEY " + secretKey);
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("cid", cid);
             params.add("tid", tid);
 
             HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
-            log.info("카카오페이 결제 상태 확인 요청: URL={}, Headers={}, Params={}",
-                    kakaoPayBaseUrl + "/v1/payment/status", headers, params);
+            log.info("카카오페이 결제 상태 확인 요청: URL={}, Headers={}, Params={}", orderApiUrl, headers, params);
+
             Map<String, Object> response;
             try {
-                response = restTemplate.postForObject(kakaoPayBaseUrl + "/v1/payment/status", requestEntity, Map.class);
+                response = restTemplate.postForObject(orderApiUrl, requestEntity, Map.class);
             } catch (HttpClientErrorException e) {
                 log.error("카카오페이 결제 상태 확인 실패: 상태 코드={}, 응답 본문={}, 헤더={}",
-                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders(), e);
-                return new PaymentResponse(false, "카카오페이 결제 상태 확인 중 오류: " + e.getStatusText() + " - " + e.getResponseBodyAsString(), null, null, null);
+                        e.getStatusCode(), e.getResponseBodyAsString(), e.getResponseHeaders());
+                String errorMessage = String.format("카카오페이 결제 상태 확인 중 오류: %s - %s", e.getStatusText(), e.getResponseBodyAsString());
+                return new PaymentResponse(false, errorMessage, null, null, null);
             }
 
             log.info("카카오페이 결제 상태 확인 응답: {}", response);
