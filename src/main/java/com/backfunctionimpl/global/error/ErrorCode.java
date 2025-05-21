@@ -57,7 +57,7 @@ public enum ErrorCode {
     NO_FLIGHT_FOUND(HttpStatus.NOT_FOUND.value(),"F007" ,"왕복 항공편 데이터를 찾을 수 없습니다"),
     FLIGHT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "F008", "항공편을 찾을 수 없습니다"),
 
-    ;
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND.value(),"K001", "결제 정보를 찾을 수 없습니다");
 
     private final int httpStatus;
     private final String code;

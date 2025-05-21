@@ -14,6 +14,7 @@ public class PaymentRequest {
     private BigDecimal totalPrice;
     private List<Passenger> passengers;
     private Contact contact;
+    private String itemName; // 추가된 필드
 
     @Data
     public static class Passenger {
