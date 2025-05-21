@@ -60,7 +60,7 @@ public class FlightControllerThree {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<ResponseDto<Long>> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam Long travelPlanId) {
+    public ResponseEntity<ResponseDto<Long>> saveFlight(@Valid @RequestBody FlightSearchReqDto reqDto, @RequestParam("travelPlanId") Long travelPlanId ) {
         log.info("항공편 저장 요청: {}, travelPlanId: {}", reqDto, travelPlanId);
         try {
             Long travelFlightId = flightSearchService.saveFlight(reqDto, travelPlanId);
@@ -182,6 +182,7 @@ public class FlightControllerThree {
     public ResponseEntity<ResponseDto<?>> bookFlight(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody AccountFlightRequestDto requestDto) {
+
         try {
             if (userDetails == null || userDetails.getAccount() == null) {
                 return ResponseEntity.badRequest()
@@ -190,6 +191,7 @@ public class FlightControllerThree {
             Long accountId = userDetails.getAccount().getId();
             flightSearchService.saveBooking(accountId, requestDto);
             String complete = "예약이 완료되었습니다.";
+
             return ResponseEntity.ok(ResponseDto.success(complete));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
