@@ -94,6 +94,7 @@ public class WebSecurityConfig {
     }
     @Bean
     public OAuth2SuccessHandler oAuth2SuccessHandler() {
+        System.out.println("✅ GOOGLE_CLIENT_ID: " + System.getenv("GOOGLE_CLIENT_ID"));
         return new OAuth2SuccessHandler(jwtUtil);
     }
 

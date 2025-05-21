@@ -35,7 +35,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         Account account = accountRepository.findByEmail(email)
                 .orElseGet(() -> {
-                    Account newAccount = new Account(email, name, provider, providerId);
+                    String nickname = oAuth2UserInfo.getName();
+                    Account newAccount = new Account(email, nickname, provider, providerId);
                     return accountRepository.save(newAccount);
                 });
 

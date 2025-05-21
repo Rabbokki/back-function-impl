@@ -28,6 +28,7 @@ public class NaverUserDetails implements OAuth2UserInfo{
     @Override
     public String getName() {
         Map<String,Object> response = (Map<String, Object>) attributes.get("response");
-        return (String) response.get("name");
+        String nickname = (String) response.get("nickname");
+        return nickname != null ? nickname : "네이버사용자";
     }
 }

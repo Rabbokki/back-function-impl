@@ -9,7 +9,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -27,8 +26,7 @@ public class Account extends BaseEntity {
     @Column(name = "account_id")
     private Long id;
 
-
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String email;
 
     @Column(nullable = false)
@@ -37,7 +35,7 @@ public class Account extends BaseEntity {
     @Column(nullable = false)
     private String nickname;
 
-    @Column(nullable = false)
+    @Column(nullable = true) // 생일이 없을 수도 있으므로 null 허용
     private LocalDate birthday;
 
     @Column(nullable = false)
@@ -46,13 +44,13 @@ public class Account extends BaseEntity {
     private String provider;
     private String providerId;
 
-
     @Column(nullable = false)
     private String role;
 
+    @Column(nullable = true)
     private String bio;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String gender;
 
     private String imgUrl;
@@ -70,38 +68,41 @@ public class Account extends BaseEntity {
     private List<Review> reviews;
 
     @Enumerated(EnumType.STRING)
-    private TravelLevel level;     // 레벨 이름대신 TravelLevel Enum
+    private TravelLevel level;
+
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "account", cascade = CascadeType.ALL)
     private List<TravelPlan> travelPlans = new ArrayList<>();
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccountFlight> accountFlights = new ArrayList<>();
-    //  경험치
+
     @Column(nullable = false)
-    private int levelExp = 0;  // 기본 0
+    private int levelExp = 0;
 
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
     private List<SavedPlace> savedPlaces;
 
-
-
-    //  현재 레벨 계산
     public TravelLevel getLevel() {
         return TravelLevel.findByExp(this.levelExp);
     }
 
-    //  경험치 추가 헬퍼
     public void addExp(int exp) {
         this.levelExp += exp;
     }
 
-    // 구글 로그인 생성자
+    // 구글 로그인 사용자 생성자
     public Account(String email, String nickname, String provider, String providerId) {
         this.email = email;
         this.nickname = nickname;
+        this.name = nickname;
         this.provider = provider;
         this.providerId = providerId;
         this.password = "SOCIAL_LOGIN";
-    }
 
+        // 기본값 설정 (nullable 필드 제외)
+        this.role = "USER";
+        this.agreeTerms = true; // 소셜은 기본 동의 처리
+        this.agreeMarketing = false;
+        this.levelExp = 0;
+    }
 }
