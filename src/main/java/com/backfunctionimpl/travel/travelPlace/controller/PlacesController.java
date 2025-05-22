@@ -35,7 +35,6 @@ public class PlacesController {
     ) {
         if ("all".equals(cityId)) {
             List<SimplePlaceDto> total = new ArrayList<>();
-
             Map<String, double[]> cityMap = CountryCityMapper.getAllCities();
 
             for (Map.Entry<String, double[]> entry : cityMap.entrySet()) {
@@ -44,14 +43,36 @@ public class PlacesController {
                 List<SimplePlaceDto> results = googlePlacesService.searchNearbyPlaces(
                         coords[0], coords[1], id, id
                 );
+
+                // ✅ 각 결과에 city / cityId 주입
+                for (SimplePlaceDto dto : results) {
+                    dto.setCity(id);
+                    dto.setCityId(id);
+                }
+
                 total.addAll(results);
             }
 
             return ResponseEntity.ok(total);
         }
 
-        // 기존 처리
+        if (lat == null || lng == null) {
+            Optional<double[]> coords = CountryCityMapper.getCoordinates(city);
+            if (coords.isEmpty()) {
+                return ResponseEntity.badRequest().body("도시 좌표를 찾을 수 없습니다.");
+            }
+            lat = coords.get()[0];
+            lng = coords.get()[1];
+        }
+
         List<SimplePlaceDto> result = googlePlacesService.searchNearbyPlaces(lat, lng, city, cityId);
+
+        // ✅ 단건 조회도 city 정보 주입
+        for (SimplePlaceDto dto : result) {
+            dto.setCity(city);
+            dto.setCityId(cityId);
+        }
+
         return ResponseEntity.ok(result);
     }
 
@@ -112,7 +133,5 @@ public class PlacesController {
         JsonNode detail = googlePlacesService.getPlaceDetail(placeId);
         return ResponseEntity.ok(detail);
     }
-
-
 
 }
