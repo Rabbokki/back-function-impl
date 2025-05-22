@@ -131,3 +131,4 @@ application:
         max-request-size: 50MB
     file:
       upload-dir: /uploads
+
