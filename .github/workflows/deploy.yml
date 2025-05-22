@@ -2,7 +2,7 @@ name: 배포
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:
