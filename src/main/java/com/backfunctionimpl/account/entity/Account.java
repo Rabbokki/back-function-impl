@@ -20,6 +20,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class Account extends BaseEntity {
+    //카카오
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
