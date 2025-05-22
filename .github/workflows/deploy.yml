@@ -37,9 +37,7 @@ jobs:
           key: ${{ secrets.AWS_KEY }}
           script: |
             sudo timedatectl set-timezone Asia/Seoul
-            # PATH 설정
             export PATH=$PATH:/usr/local/bin:/usr/bin
-            # DOCKER_COMPOSE_YML 내용 확인
             if [ -z "${{ secrets.DOCKER_COMPOSE_YML }}" ]; then
               echo "Error: DOCKER_COMPOSE_YML is empty"
               exit 1
