@@ -11,6 +11,10 @@ public class CountryCityMapper {
     static {
         CITY_MAP.put("tokyo", new double[]{35.6895, 139.6917});
         CITY_MAP.put("osaka", new double[]{34.6937, 135.5023});
+        CITY_MAP.put("fukuoka", new double[]{33.5904, 130.4017});
+        CITY_MAP.put("paris", new double[]{48.8566, 2.3522});
+        CITY_MAP.put("rome", new double[]{41.9028, 12.4964});
+        CITY_MAP.put("venice", new double[]{45.4408, 12.3155});
 
         // 한글 키워드 추가
         CITY_MAP.put("도쿄", new double[]{35.6895, 139.6917});
