@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface AiPlanRepository extends JpaRepository<AiPlan,Long> {
     List<AiPlan> findByUserId(String userId);
-
+    //zzz
     List<AiPlan> findByUserIdAndDestinationAndStartDateAndEndDate(
             String userId, String destination, LocalDate startDate, LocalDate endDate);
 }
