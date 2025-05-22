@@ -4,6 +4,8 @@ import com.backfunctionimpl.account.entity.Account;
 import com.backfunctionimpl.global.security.user.UserDetailsImpl;
 import com.backfunctionimpl.post.dto.PostDto;
 import com.backfunctionimpl.post.service.PostService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -50,9 +52,15 @@ public class PostController {
             @PathVariable("id") Long id,
             @RequestPart(value = "postImg", required = false) List<MultipartFile> imgs,
             @RequestPart(value = "dto") PostDto dto,
+            @RequestPart(value = "remainImgUrl", required = false) String remainImgUrlsJson,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            return postService.updateByPost(id, imgs, dto, userDetails.getAccount());
+            List<String> remainImgUrls = null;
+            if (remainImgUrlsJson != null && !remainImgUrlsJson.isEmpty()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                remainImgUrls = objectMapper.readValue(remainImgUrlsJson, new TypeReference<List<String>>() {});
+            }
+            return postService.updateByPost(id, imgs, dto, remainImgUrls, userDetails.getAccount());
         } catch (Exception e) {
             log.error("Error updating post: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("업데이트 실패");
