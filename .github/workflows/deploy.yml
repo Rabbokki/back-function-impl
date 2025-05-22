@@ -37,10 +37,18 @@ jobs:
           key: ${{ secrets.AWS_KEY }}
           script: |
             sudo timedatectl set-timezone Asia/Seoul
+            # PATH 설정
+            export PATH=$PATH:/usr/local/bin:/usr/bin
+            # DOCKER_COMPOSE_YML 내용 확인
+            if [ -z "${{ secrets.DOCKER_COMPOSE_YML }}" ]; then
+              echo "Error: DOCKER_COMPOSE_YML is empty"
+              exit 1
+            fi
             echo "${{ secrets.DOCKER_COMPOSE_YML }}" > /home/ubuntu/docker-compose.yml
             echo "${{ secrets.ENV_FILE }}" > /home/ubuntu/.env
             chmod 600 /home/ubuntu/.env
             docker pull ${{ secrets.DOCKER_USER_NAME }}/${{ secrets.DOCKER_IMAGE_NAME }}-be
-            docker-compose -f /home/ubuntu/docker-compose.yml down
+            docker pull ${{ secrets.DOCKER_USER_NAME }}/${{ secrets.DOCKER_IMAGE_NAME }}-front
+            docker compose -f /home/ubuntu/docker-compose.yml down
             docker volume prune -f
-            docker-compose -f /home/ubuntu/docker-compose.yml up -d --force-recreate
+            docker compose -f /home/ubuntu/docker-compose.yml up -d --force-recreate
