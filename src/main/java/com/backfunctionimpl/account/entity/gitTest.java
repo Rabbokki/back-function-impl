@@ -1,0 +1,5 @@
+package com.backfunctionimpl.account.entity;
+
+public class gitTest {
+    private String test;
+}
