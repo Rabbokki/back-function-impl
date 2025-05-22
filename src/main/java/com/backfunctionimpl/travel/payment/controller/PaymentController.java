@@ -14,15 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
-//kakaopay.cid=TC0ONETIME
-//kakaopay.secret-key=DEV812BBF755B87AC39D19E7CE8D90783436E8FB
-//kakaopay.ready-url=https://open-api.kakaopay.com/online/v1/payment/ready
-//kakaopay.approve-api-url=https://open-api.kakaopay.com/online/v1/payment/approve
-//kakaopay.cancel-api-url=https://open-api.kakaopay.com/online/v1/payment/cancel
-//kakaopay.order-api-url=https://open-api.kakaopay.com/online/v1/payment/order
-//kakaopay.approval-url=http://localhost:3000/payment/success
-//kakaopay.cancel-url=http://localhost:3000/payment/cancel
-//kakaopay.fail-url=http://localhost:3000/payment/fail
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
