@@ -180,7 +180,13 @@ public class PostService {
 
     // 게시글 수정
     @Transactional
-    public ResponseEntity<String> updateByPost(Long id, List<MultipartFile> imgs, PostDto dto, Account account) {
+    public ResponseEntity<String> updateByPost(
+            Long id,
+            List<MultipartFile> imgs,
+            PostDto dto,
+            List<String> remainImgUrls,
+            Account account
+    ) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 게시글이 존재하지 않습니다."));
 
@@ -192,24 +198,29 @@ public class PostService {
         post.setContent(dto.getContent());
 
         post.getImages().clear();
-        List<String> uploadedUrls = new ArrayList<>();
-        if (imgs != null && !imgs.isEmpty()) {
-            for (MultipartFile img : imgs) {
-                System.out.println("8=========D~~ We are now about to replace images ~~C============8");
-                String uploadedUrl = s3Service.uploadFile(img);
-                System.out.println("Uploaded to: " + uploadedUrl); // confirm URL
-                uploadedUrls.add(uploadedUrl);
+        List<Image> images = new ArrayList<>();
+
+        if (remainImgUrls != null && !remainImgUrls.isEmpty()) {
+            for (String url : remainImgUrls) {
+                Image img = Image.builder()
+                        .imageUrl(url)
+                        .post(post)
+                        .build();
+                images.add(img);
             }
         }
 
-        List<Image> images = uploadedUrls.stream()
-                .map(url -> Image.builder()
-                        .imageUrl(url)
+        if (imgs != null && !imgs.isEmpty()) {
+            for (MultipartFile imgFile : imgs) {
+                String uploadedUrl = s3Service.uploadFile(imgFile);
+                Image img = Image.builder()
+                        .imageUrl(uploadedUrl)
                         .post(post)
-                        .build())
-                .toList();
-
-        post.getImages().addAll(images); // ✅ fix: don't use setImages()
+                        .build();
+                images.add(img);
+            }
+        }
+        post.getImages().addAll(images);
 
         post.getTags().clear();
         if (dto.getTags() != null) {
@@ -222,7 +233,8 @@ public class PostService {
             }
         }
 
-        postRepository.save(post); // optional in @Transactional, but fine
+        postRepository.save(post);
+
         return ResponseEntity.ok("게시글이 성공적으로 수정되었습니다.");
     }
 
