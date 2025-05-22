@@ -103,13 +103,14 @@ amadeus:
     base-url: https://test.api.amadeus.com
 
 kakaopay:
+  secret-key: ${KAKAOPAY_SECRET_KEY}
   cid: TC0ONETIME
-  admin-key: ${KAKAOPAY_ADMIN_KEY}
-  api:
-    base-url: https://kapi.kakao.com
-    ready-url: https://kapi.kakao.com/v1/payment/ready
-    approve-url: https://kapi.kakao.com/v1/payment/approve
-    cancel-url: https://kapi.kakao.com/v1/payment/cancel
+  # 카카오페이 API용 URL
+  ready-url: https://open-api.kakaopay.com/online/v1/payment/ready
+  approve-api-url: https://open-api.kakaopay.com/online/v1/payment/approve
+  cancel-api-url: https://open-api.kakaopay.com/online/v1/payment/cancel
+  order-api-url: https://open-api.kakaopay.com/online/v1/payment/order  # 상태 확인용
+  # 사용자 redirect용 URL
   approval-url: http://localhost:3000/payment/success
   cancel-url: http://localhost:3000/payment/cancel
   fail-url: http://localhost:3000/payment/fail
