@@ -10,10 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +31,10 @@ public class AiPlanController {
     private final AiPlanService aiPlanService;
     private final RestTemplate restTemplate;
 
-    @Value("${fastapi.api-key}")
+    @Value("${fastapi.url:http://ai:5000}")
+    private String fastApiUrl;
+
+    @Value("${fastapi.key}")
     private String fastApiKey;
 
     public AiPlanController(AiPlanService aiPlanService, RestTemplate restTemplate) {
@@ -50,23 +50,21 @@ public class AiPlanController {
         try {
             Map<String, Object> fastApiRequest = new HashMap<>();
             fastApiRequest.put("destination", request.getDestination());
-            fastApiRequest.put("preferences", request.getPreferences());
+            fastApiRequest.put("preferences", request.getPreferences().toString()); // FastAPI는 문자열 기대
             fastApiRequest.put("budget", request.getBudget());
             fastApiRequest.put("pace", request.getPace());
             fastApiRequest.put("start_date", request.getStartDate());
             fastApiRequest.put("end_date", request.getEndDate());
-            fastApiRequest.put("itinerary", request.getItinerary());
-            fastApiRequest.put("userId", userDetails.getUsername());
 
             logger.info("FastAPI request body: {}", fastApiRequest);
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + fastApiKey);
-            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(fastApiRequest, headers);
 
             ResponseEntity<Map> fastApiResponse = restTemplate.exchange(
-                    "http://localhost:8000/api/generate-itinerary",
+                    fastApiUrl + "/api/generate-itinerary",
                     HttpMethod.POST,
                     entity,
                     Map.class
