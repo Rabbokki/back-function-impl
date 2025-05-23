@@ -111,9 +111,9 @@ kakaopay:
   approve-api-url: https://open-api.kakaopay.com/online/v1/payment/approve
   cancel-api-url: https://open-api.kakaopay.com/online/v1/payment/cancel
   order-api-url: https://open-api.kakaopay.com/online/v1/payment/order
-  approval-url: https://travelling.p-e.kr/payment/success
-  cancel-url: https://travelling.p-e.kr/payment/cancel
-  fail-url: https://travelling.p-e.kr/payment/fail
+  approval-url: https://localhost:8080/payment/success
+  cancel-url: https://localhost:8080/payment/cancel
+  fail-url: https://localhost:8080/payment/fail
 
 application:
   bucket:
