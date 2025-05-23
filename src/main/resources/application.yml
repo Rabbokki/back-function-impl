@@ -47,7 +47,7 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
 
-            redirect-uri: "http://localhost:8080/login/oauth2/code/google" #8080으로  해주세여
+            redirect-uri: "https://travelling.p-e.kr/login/oauth2/code/google" #8080으로  해주세여
             scope:
               - email
               - profile
@@ -56,7 +56,7 @@ spring:
             client-secret: ${NAVER_CLIENT_SECRET}
             client-name: Naver
             authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/naver #8080으로  해주세여
+            redirect-uri: https://travelling.p-e.kr/login/oauth2/code/naver #8080으로  해주세여
             scope:
               - name
               - email
@@ -78,6 +78,7 @@ spring:
     type: redis
 
 fastapi:
+  url: http://ai:5000
   api-key: my_unique_secure_key_12345
 
 jwt:
@@ -106,15 +107,13 @@ amadeus:
 kakaopay:
   secret-key: ${KAKAOPAY_SECRET_KEY}
   cid: TC0ONETIME
-  # 카카오페이 API용 URL
   ready-url: https://open-api.kakaopay.com/online/v1/payment/ready
   approve-api-url: https://open-api.kakaopay.com/online/v1/payment/approve
   cancel-api-url: https://open-api.kakaopay.com/online/v1/payment/cancel
-  order-api-url: https://open-api.kakaopay.com/online/v1/payment/order  # 상태 확인용
-  # 사용자 redirect용 URL
-  approval-url: http://13.125.2.46/payment/success
-  cancel-url: http://13.125.2.46/payment/cancel
-  fail-url: http://13.125.2.46/payment/fail
+  order-api-url: https://open-api.kakaopay.com/online/v1/payment/order
+  approval-url: https://travelling.p-e.kr/payment/success
+  cancel-url: https://travelling.p-e.kr/payment/cancel
+  fail-url: https://travelling.p-e.kr/payment/fail
 
 application:
   bucket:
