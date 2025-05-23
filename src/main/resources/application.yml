@@ -79,7 +79,7 @@ spring:
 
 fastapi:
   url: http://ai:5000
-  api-key: my_unique_secure_key_12345
+  key: my_unique_secure_key_12345
 
 jwt:
   secret:
