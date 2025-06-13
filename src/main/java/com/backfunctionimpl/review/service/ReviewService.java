@@ -25,9 +25,9 @@ public class ReviewService {
     // ✅ 1. placeId로 리뷰 목록 조회
     @Transactional(readOnly = true)
     public ResponseDto<?> getReviewsByPlaceId(String placeId) {
+        System.out.println("🔍 placeId로 리뷰 조회: " + placeId);
         List<Review> reviewEntities = reviewRepository.findWithAccountByPlaceId(placeId);
 
-        // ✅ 여기 디버깅용 출력 추가
         System.out.println("💬 리뷰 수: " + reviewEntities.size());
         for (Review r : reviewEntities) {
             System.out.println("⭐ " + r.getAccount().getNickname() + ": " + r.getContent());
@@ -38,12 +38,14 @@ public class ReviewService {
                 .toList();
         return ResponseDto.success(reviews);
     }
+
     // ✅ 2. 리뷰 등록
     @Transactional
     public ResponseDto<?> addPlaceReview(ReviewDto dto, Account account) {
+        System.out.println("💾 리뷰 저장: placeId=" + dto.getPlaceId() + ", accountId=" + account.getId());
         Review review = new Review(
                 dto.getPlaceId(),
-                dto.getPlaceName(), // ✅ 명소 이름도 저장
+                dto.getPlaceName(),
                 account,
                 dto.getRating(),
                 account.getNickname(),
@@ -61,6 +63,7 @@ public class ReviewService {
     // ✅ 3. 리뷰 삭제
     @Transactional
     public ResponseDto<?> removeReviewById(Long reviewId, Account account) {
+        System.out.println("🗑️ 리뷰 삭제: reviewId=" + reviewId + ", accountId=" + account.getId());
         Optional<Review> optional = reviewRepository.findById(reviewId);
 
         if (optional.isEmpty()) {
@@ -76,5 +79,4 @@ public class ReviewService {
         reviewRepository.delete(review);
         return ResponseDto.success(Map.of("deletedId", reviewId));
     }
-
 }

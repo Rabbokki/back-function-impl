@@ -32,16 +32,19 @@ public class ReviewController {
     public ResponseDto<?> getReviews(@RequestParam("placeId") String placeId) {
         System.out.println("📥 받은 placeId: " + placeId);
         ResponseDto<?> response = reviewService.getReviewsByPlaceId(placeId);
-        System.out.println("📤 반환할 리뷰: " + response); // 여기에 찍히는 값 확인
+        System.out.println("📤 반환할 리뷰: " + response);
         return response;
     }
-
 
     // ✅ 2. 리뷰 작성
     @PostMapping
     public ResponseDto<?> addReview(@RequestBody ReviewDto dto) {
+        System.out.println("📥 받은 ReviewDto: " + dto);
+        if (dto.getAccountId() == null) {
+            return ResponseDto.fail("400", "accountId는 필수입니다.");
+        }
         Account account = accountRepository.findById(dto.getAccountId())
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new RuntimeException("Account not found: id=" + dto.getAccountId()));
         return reviewService.addPlaceReview(dto, account);
     }
 
@@ -64,7 +67,7 @@ public class ReviewController {
 
     // ✅ GET /api/reviews/me - 로그인한 사용자의 리뷰만 조회
     @GetMapping("/me")
-    public ResponseDto<?> getMyReviews(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseDto<?> getMyReviews(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         if (userDetails == null) {
             return ResponseDto.fail("401", "로그인이 필요합니다.");
         }
@@ -80,8 +83,4 @@ public class ReviewController {
 
         return ResponseDto.success(response);
     }
-
-
-
-
 }
