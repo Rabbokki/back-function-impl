@@ -83,8 +83,6 @@ https://youtu.be/lchUEy-PWBQ
 ## Wiki
 https://github.com/function-implementation-only/Backend/wiki
 
-![ㅋ](https://github.com/user-attachments/assets/5d909775-e3ab-4575-a8c7-0f527fff9452)
-
 
 ## 😺 멤버
 |[🔰주재정](https://github.com/Rabbokki)|[유상호](http)|[이효진](http)|[윤지영](http)|            
