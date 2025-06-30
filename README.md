@@ -83,14 +83,10 @@ https://youtu.be/lchUEy-PWBQ
 ## Wiki
 https://github.com/function-implementation-only/Backend/wiki
 ## 😺 멤버
-|[🔰주재정](https://github.com/Rabbokki)|[김병현](http)|[주재정](http)|            
-|:---:|:---:|:---:|
-|<img width="150" alt="주재정" src="https://user-images.githubusercontent.com/63353500/228727742-4227f0c1-6884-4d7c-b985-9fb67d033d05.png">|<img width="170" alt="김병현" src="https://user-images.githubusercontent.com/63353500/228760565-108a673e-adde-4f0f-99ef-77b99b87103f.png">|<img width="150" alt="이승주" src="https://user-images.githubusercontent.com/63353500/228728529-5c84fbdb-02ac-4190-9be0-ad409e6b38e6.png">|
-|BACK-END|BACK-END|BACK-END|
-
-## 실행 방법
-
-아래는 이 프로젝트를 실행하는 방법입니다.
+|[🔰주재정](https://github.com/Rabbokki)|[유상호](http)|[이효진](http)|[윤지영](http)|            
+|:---:|:---:|:---:|:---:|
+|<img width="150" alt="주재정" src="https://user-images.githubusercontent.com/63353500/228727742-4227f0c1-6884-4d7c-b985-9fb67d033d05.png">|<img width="170" alt="김병현" src="https://user-images.githubusercontent.com/63353500/228760565-108a673e-adde-4f0f-99ef-77b99b87103f.png">|<img width="150" alt="이승주" src="https://user-images.githubusercontent.com/63353500/228728529-5c84fbdb-02ac-4190-9be0-ad409e6b38e6.png">|<img width="150" alt="주재정" src="https://user-images.githubusercontent.com/63353500/228727742-4227f0c1-6884-4d7c-b985-9fb67d033d05.png">|
+|BACK-END|BACK-END|BACK-END|BACK-END|
 
 
 
