@@ -82,13 +82,14 @@ https://youtu.be/lchUEy-PWBQ
 
 ## Wiki
 https://github.com/function-implementation-only/Backend/wiki
-<img width="423" alt="insukKwak" src="https://github.com/user-attachments/assets/87ad6957-f868-470a-bdc4-4eed93766d36" />
+
+![이모지](https://github.com/user-attachments/assets/54cb7bdd-8a7e-417b-9630-60ca5620b859)
 
 
 ## 😺 멤버
 |[🔰주재정](https://github.com/Rabbokki)|[유상호](http)|[이효진](http)|[윤지영](http)|            
 |:---:|:---:|:---:|:---:|
-|<img width="150" alt="주재정" src="https://github.com/user-attachments/assets/18515cc2-4d52-4335-b7ae-989b4aa3b807">|<img width="170" alt="김병현" src="[https://user-images.githubusercontent.com/63353500/228760565-108a673e-adde-4f0f-99ef-77b99b87103f.png](https://github.com/user-attachments/assets/87ad6957-f868-470a-bdc4-4eed93766d36)">|<img width="150" alt="이승주" src="https://user-images.githubusercontent.com/63353500/228728529-5c84fbdb-02ac-4190-9be0-ad409e6b38e6.png">|<img width="150" alt="주재정" src="https://github.com/user-attachments/assets/87ad6957-f868-470a-bdc4-4eed93766d36">|
+|<img width="150" alt="주재정" src="https://github.com/user-attachments/assets/18515cc2-4d52-4335-b7ae-989b4aa3b807">|<img width="170" alt="김병현" src="https://github.com/user-attachments/assets/54cb7bdd-8a7e-417b-9630-60ca5620b859">|<img width="150" alt="이승주" src="https://user-images.githubusercontent.com/63353500/228728529-5c84fbdb-02ac-4190-9be0-ad409e6b38e6.png">|<img width="150" alt="주재정" src="https://github.com/user-attachments/assets/87ad6957-f868-470a-bdc4-4eed93766d36">|
 |BACK-END|BACK-END|BACK-END|BACK-END|
 
 
