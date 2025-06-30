@@ -27,7 +27,8 @@ https://youtu.be/lchUEy-PWBQ
 <img src="https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white"/>
 ## 🔧 서비스 아키텍처
 
-![아키텍쳐](https://user-images.githubusercontent.com/113872554/223130493-5548c091-cd72-4d0d-84d9-b24247de7062.png)
+![아키텍쳐](https://github.com/user-attachments/assets/e215e63e-7e3d-4dc4-aecd-992aaf62c34e)
+
 
 <br>
 
