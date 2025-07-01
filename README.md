@@ -9,6 +9,7 @@ https://youtu.be/lchUEy-PWBQ
 <img src="https://github.com/user-attachments/assets/e9b60088-0b8e-4b57-b2f9-62c9b2041319" width="400"/>
 <img src="https://github.com/user-attachments/assets/9c26c8af-ae4e-442a-8e70-854ce7caa558" width="400"/>
 <img src="https://github.com/user-attachments/assets/2bc5db4c-04a2-4485-b666-58802398d24b" width="400"/>
+<img src="https://github.com/user-attachments/assets/3ba85a78-c9f6-4662-aa49-907e0c16e458" width="400"/>
 
 ## ✨ 기술스택
 #### FRONT-END
