@@ -3,8 +3,8 @@
 #### Travelling은 사용자들이 해외여행을 준비할 때 항공권을 구매하고, 추천 명소를 탐색하며, 나만의 여행 일정을 계획하고, 여행자들과 소통할 수 있는 커뮤니티 기능을 제공하는 올인원 여행 플랫폼입니다.
 ## 🎥 시연영상
 
-
 https://youtu.be/lchUEy-PWBQ
+
 <img src="https://github.com/user-attachments/assets/597d3360-38a7-4c37-9d01-633e6b527759" width="400"/>
 <img src="https://github.com/user-attachments/assets/e9b60088-0b8e-4b57-b2f9-62c9b2041319" width="400"/>
 <img src="https://github.com/user-attachments/assets/9c26c8af-ae4e-442a-8e70-854ce7caa558" width="400"/>
