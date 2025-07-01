@@ -5,16 +5,10 @@
 
 
 https://youtu.be/lchUEy-PWBQ
-![회원가입](https://github.com/user-attachments/assets/597d3360-38a7-4c37-9d01-633e6b527759)
-![항공권](https://github.com/user-attachments/assets/e9b60088-0b8e-4b57-b2f9-62c9b2041319)
-![커뮤니티](https://github.com/user-attachments/assets/9c26c8af-ae4e-442a-8e70-854ce7caa558)
-![추천명소 (2)](https://github.com/user-attachments/assets/2bc5db4c-04a2-4485-b666-58802398d24b)
-
-![vllo_gif](https://user-images.githubusercontent.com/113872554/227924125-bd54a734-ec1b-44c0-b646-3c72865845bb.gif)
-![vllo_gif5](https://user-images.githubusercontent.com/113872554/227927894-53cd9465-3007-4adf-a67d-86e285fba0b6.gif)
-![vllo_gif4](https://user-images.githubusercontent.com/113872554/227927886-dec20ec6-1cce-45d4-ba97-284983f74e2b.gif)
-![vllo_gif3](https://user-images.githubusercontent.com/113872554/227927878-86dbab81-8d28-45f4-b70e-507ae86599d4.gif)
-![vllo_gif2](https://user-images.githubusercontent.com/113872554/227927869-465bdf05-3209-49f8-931e-d4a86629af9e.gif)
+<img src="https://github.com/user-attachments/assets/597d3360-38a7-4c37-9d01-633e6b527759" width="400"/>
+<img src="https://github.com/user-attachments/assets/e9b60088-0b8e-4b57-b2f9-62c9b2041319" width="400"/>
+<img src="https://github.com/user-attachments/assets/9c26c8af-ae4e-442a-8e70-854ce7caa558" width="400"/>
+<img src="https://github.com/user-attachments/assets/2bc5db4c-04a2-4485-b666-58802398d24b" width="400"/>
 
 ## ✨ 기술스택
 #### FRONT-END
